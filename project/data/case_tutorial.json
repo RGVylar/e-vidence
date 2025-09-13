@@ -1,0 +1,27 @@
+{
+  "contacts": [
+	{ "id": "a1", "name": "Pilar" },
+	{ "id": "b2", "name": "David" },
+	{ "id": "c3", "name": "Silva" },
+	{ "id": "d4", "name": "Neo" }
+  ],
+  "chats": {
+	"a1": [
+	  { "from": "Pilar", "text": "¿Has visto la foto?" },
+	  { "from": "Yo", "text": "Abriendo la app." }
+	],
+	"b2": [
+	  { "from": "David", "text": "Bro, hay pistas nuevas." }
+	],
+	"d4": [
+	  { "from": "Silva", "text": "..." }
+	],
+	"c3": [
+	  { "from": "Neo", "text": "Nos veremos en el futuro." }
+	]
+  },
+  "gallery": [
+	"res://assets/case/tutorial/img1.png",
+	"res://assets/case/tutorial/capture_01.jpg"
+  ]
+}

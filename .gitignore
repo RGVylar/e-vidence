@@ -1,6 +1,9 @@
 # Godot 4+ specific ignores
 .godot/
 .nomedia
+.import/
+/android/
+
 
 # Godot-specific ignores
 .import/
@@ -14,3 +17,9 @@ export_credentials.cfg
 .mono/
 data_*/
 mono_crash.*.json
+*.png
+*.webp
+
+# Caches/temporales del editor
+*.tmp
+*.temp
