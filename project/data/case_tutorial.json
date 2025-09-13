@@ -8,18 +8,26 @@
   "chats": {
 	"a1": [
 	  { "from": "Pilar", "text": "¿Has visto la foto?" },
-	  { "from": "Yo", "text": "Abriendo la app." }
+	  { "from": "Yo", "text": "¿La de mi polla en moto?" },
+	  { "from": "Pilar", "text": "Eres tontito..." },
+	  { "from": "Pilar", "text": "Que si has visto la foto que te he mandado!" },
+	
 	],
 	"b2": [
-	  { "from": "David", "text": "Bro, hay pistas nuevas." }
-	],
-	"d4": [
-	  { "from": "Silva", "text": "..." }
+	  { "from": "Yo", "text": "Le hice la rima de la moto a Pilar XD" },
+	  { "from": "David", "text": "BASED!" }
 	],
 	"c3": [
+	  { "from": "Silva", "text": "..." }
+	],
+	"d4": [
 	  { "from": "Neo", "text": "Nos veremos en el futuro." }
 	]
   },
+  "replies": {
+	"a1": ["Estoy mirando la foto.", "¿Cuándo la subiste?", "¿Dónde fue?"],
+	"b2": ["¿Qué pistas?", "Mándame más info."]
+	},
   "gallery": [
 	"res://assets/case/tutorial/img1.png",
 	"res://assets/case/tutorial/capture_01.jpg"
