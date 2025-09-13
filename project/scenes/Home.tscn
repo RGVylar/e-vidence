@@ -7,29 +7,39 @@
 
 [node name="Home" type="Control"]
 layout_mode = 3
-anchors_preset = 0
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 script = ExtResource("1_svoro")
 
+[node name="CaseInfo" type="Label" parent="."]
+layout_mode = 2
+offset_top = 260.0
+offset_right = 298.0
+offset_bottom = 283.0
+
 [node name="GridContainer" type="GridContainer" parent="."]
-offset_right = 392.0
-offset_bottom = 128.0
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 columns = 3
 
 [node name="btn_messages" type="TextureButton" parent="GridContainer"]
 layout_mode = 2
+size_flags_horizontal = 3
 texture_normal = ExtResource("2_svoro")
 
 [node name="btn_gallery" type="TextureButton" parent="GridContainer"]
 layout_mode = 2
+size_flags_horizontal = 3
 texture_normal = ExtResource("3_svoro")
 
 [node name="btn_mail" type="TextureButton" parent="GridContainer"]
 layout_mode = 2
+size_flags_horizontal = 3
 texture_normal = ExtResource("4_yk4sq")
-
-[node name="CaseInfo" type="Label" parent="."]
-layout_mode = 0
-offset_left = 265.0
-offset_top = 286.0
-offset_right = 305.0
-offset_bottom = 309.0

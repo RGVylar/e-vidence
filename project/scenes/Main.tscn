@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=3 uid="uid://onh34eg11o8u"]
+[gd_scene load_steps=3 format=3 uid="uid://onh34eg11o8u"]
 
 [ext_resource type="Script" uid="uid://btv3nr3ut747w" path="res://scenes/main.gd" id="1_elqb8"]
+[ext_resource type="Texture2D" uid="uid://dwsbnrttbvjyn" path="res://assets/image.png" id="2_rvslj"]
 
 [node name="Main" type="Control"]
 layout_mode = 3
@@ -11,20 +12,25 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_elqb8")
 
-[node name="VBoxContainer" type="VBoxContainer" parent="."]
+[node name="ColorRect" type="ColorRect" parent="."]
+layout_mode = 0
+offset_right = 896.0
+offset_bottom = 897.0
+color = Color(0, 0, 0, 1)
+
+[node name="VBoxContainer" type="VBoxContainer" parent="ColorRect"]
 layout_mode = 0
 offset_right = 900.0
 offset_bottom = 900.0
+theme_override_constants/separation = 10
 
-[node name="Title" type="Label" parent="VBoxContainer"]
+[node name="TextureRect" type="TextureRect" parent="ColorRect/VBoxContainer"]
 layout_mode = 2
-size_flags_vertical = 3
-text = "E-VIDENCE"
-horizontal_alignment = 1
-vertical_alignment = 1
+texture = ExtResource("2_rvslj")
 
-[node name="BtnStart" type="Button" parent="VBoxContainer"]
+[node name="BtnStart" type="Button" parent="ColorRect/VBoxContainer"]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(300, 0)
 layout_mode = 2
-size_flags_vertical = 3
+size_flags_horizontal = 4
 text = "Start"

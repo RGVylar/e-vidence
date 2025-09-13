@@ -24,27 +24,42 @@ layout_mode = 2
 [node name="TopBar" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
 
-[node name="BtnBack" type="Button" parent="MarginContainer/VBoxContainer/TopBar"]
+[node name="ColorRect" type="ColorRect" parent="MarginContainer/VBoxContainer/TopBar"]
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+size_flags_horizontal = 3
+color = Color(0.215902, 0.215902, 0.215902, 1)
+
+[node name="BtnBack" type="Button" parent="MarginContainer/VBoxContainer/TopBar/ColorRect"]
 unique_name_in_owner = true
 layout_mode = 2
+offset_left = 4.0
+offset_right = 82.0
+offset_bottom = 40.0
 size_flags_horizontal = 0
 text = "⬅ Volver"
 
-[node name="AvatarWrap" type="Panel" parent="MarginContainer/VBoxContainer/TopBar"]
+[node name="AvatarWrap" type="Panel" parent="MarginContainer/VBoxContainer/TopBar/ColorRect"]
 unique_name_in_owner = true
 clip_contents = true
 custom_minimum_size = Vector2(40, 40)
 layout_mode = 2
+offset_left = 86.0
+offset_right = 126.0
+offset_bottom = 40.0
 
-[node name="Avatar" type="TextureRect" parent="MarginContainer/VBoxContainer/TopBar/AvatarWrap"]
+[node name="Avatar" type="TextureRect" parent="MarginContainer/VBoxContainer/TopBar/ColorRect/AvatarWrap"]
 unique_name_in_owner = true
 layout_mode = 2
 expand_mode = 1
 stretch_mode = 5
 
-[node name="Header" type="Label" parent="MarginContainer/VBoxContainer/TopBar"]
+[node name="Header" type="Label" parent="MarginContainer/VBoxContainer/TopBar/ColorRect"]
 unique_name_in_owner = true
 layout_mode = 2
+offset_left = 130.0
+offset_right = 901.0
+offset_bottom = 40.0
 size_flags_horizontal = 3
 size_flags_vertical = 1
 text = "Chat"
