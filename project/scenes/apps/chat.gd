@@ -4,6 +4,7 @@ extends Control
 @onready var avatar: TextureRect = get_node_or_null("%Avatar") as TextureRect
 @onready var name_lbl: Label     = get_node_or_null("%Name")   as Label   # nuevo
 @onready var header: Label       = get_node_or_null("%Header") as Label   # por compat
+@onready var avatar_wrap: Panel = get_node_or_null("%AvatarWrap") as Panel
 
 # --- Chat ---
 @onready var chat_box: VBoxContainer = %ChatBox
@@ -12,7 +13,7 @@ extends Control
 # --- Bottom bar (nuevo) ---
 @onready var add_btn: Button            = get_node_or_null("%AddBtn")       as Button
 @onready var send_btn: Button           = get_node_or_null("%SendBtn")      as Button
-@onready var choice_picker: OptionButton      = get_node_or_null("%ChoicePicker") as Button
+@onready var choice_picker: OptionButton = get_node_or_null("%ChoicePicker") as OptionButton
 
 const PATH_MESSAGING := "res://scenes/apps/Messaging.tscn"
 
@@ -44,7 +45,17 @@ func _ready() -> void:
 	if header:   header.text   = "Chat — " + display
 	if avatar and avatar_path != "":
 		var tex := load(avatar_path)
-		if tex is Texture2D: avatar.texture = tex
+		if tex is Texture2D:
+			avatar.texture = tex
+			_make_avatar_round()  # <-- importante
+
+	if avatar_wrap:
+		avatar_wrap.custom_minimum_size = Vector2(40, 40)
+		avatar_wrap.clip_contents = false     # <-- quitamos el recorte rectangular
+		# si quieres mantener el fondo/transparencia del wrap:
+		var sb := StyleBoxFlat.new()
+		sb.bg_color = Color(0,0,0,0)
+		avatar_wrap.add_theme_stylebox_override("panel", sb)
 
 	# --- quick replies ---
 	if choice_picker:
@@ -168,6 +179,29 @@ func _fill_replies(contact_id: String, case_data: Dictionary) -> void:
 	choice_picker.select(0)  # para que se vea texto
 	dbg("replies for %s -> %d (text='%s')" % [contact_id, choice_picker.item_count, choice_picker.text])
 
+func _make_avatar_round() -> void:
+	if not is_instance_valid(avatar): return
+
+	# máscara circular
+	var sh := Shader.new()
+	sh.code = """
+	shader_type canvas_item;
+	void fragment() {
+		vec2 c = vec2(0.5, 0.5);
+		float r = 0.5;
+		vec4 col = texture(TEXTURE, UV) * COLOR;
+		if (distance(UV, c) > r) discard;
+		COLOR = col;
+	}
+	"""
+	var mat := ShaderMaterial.new()
+	mat.shader = sh
+	avatar.material = mat
+
+	# que el TextureRect RELLENE su rect y centre la imagen
+	avatar.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	avatar.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	avatar.custom_minimum_size = Vector2.ZERO  # evita ser más grande que su padre
 
 func _on_back_pressed() -> void:
 	get_tree().change_scene_to_file(PATH_MESSAGING)

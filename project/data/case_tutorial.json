@@ -1,10 +1,10 @@
 {
-  "contacts": [
-	{ "id": "a1", "name": "Pilar" },
-	{ "id": "b2", "name": "David" },
-	{ "id": "c3", "name": "Silva" },
-	{ "id": "d4", "name": "Neo" }
-  ],
+	  "contacts": [
+	  { "id": "a1", "name": "Pilar",  "avatar": "res://assets/avatars/pilar.jpg" },
+	  { "id": "b2", "name": "David",  "avatar": "res://assets/avatars/david.jpg" },
+	  { "id": "c3", "name": "Silva",  "avatar": "res://assets/avatars/silva.jpg" },
+	  { "id": "d4", "name": "Neo",    "avatar": "res://assets/avatars/neo.webp" }
+	],
   "chats": {
 	"a1": [
 	  { "from": "Pilar", "text": "¿Has visto la foto?" },
