@@ -18,7 +18,11 @@ export_credentials.cfg
 data_*/
 mono_crash.*.json
 *.png
+*.png.import
 *.webp
+*.webp.import
+*.jpg
+*.jpg.import
 
 # Caches/temporales del editor
 *.tmp

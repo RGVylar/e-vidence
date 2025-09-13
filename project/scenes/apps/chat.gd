@@ -42,12 +42,13 @@ func _ready() -> void:
 			avatar_path = c.get("avatar", "")
 			break
 	if name_lbl: name_lbl.text = display
-	if header:   header.text   = "Chat — " + display
+	if header:   header.text   = display
 	if avatar and avatar_path != "":
 		var tex := load(avatar_path)
 		if tex is Texture2D:
 			avatar.texture = tex
-			_make_avatar_round()  # <-- importante
+			_make_avatar_round()
+		avatar.gui_input.connect(_on_avatar_gui_input)
 
 	if avatar_wrap:
 		avatar_wrap.custom_minimum_size = Vector2(40, 40)
@@ -205,3 +206,51 @@ func _make_avatar_round() -> void:
 
 func _on_back_pressed() -> void:
 	get_tree().change_scene_to_file(PATH_MESSAGING)
+
+func _on_avatar_gui_input(e: InputEvent) -> void:
+	if e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_LEFT:
+		_show_avatar_preview()
+
+func _show_avatar_preview() -> void:
+	if not is_instance_valid(avatar) or avatar.texture == null:
+		return
+
+	# Overlay a pantalla completa
+	var overlay := Control.new()
+	overlay.name = "_AvatarLightbox"
+	overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	add_child(overlay)
+
+	# Fondo oscurecido
+	var bg := ColorRect.new()
+	bg.color = Color(0, 0, 0, 0.8)
+	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	bg.mouse_filter = Control.MOUSE_FILTER_STOP
+	overlay.add_child(bg)
+
+	# Foto centrada
+	var big := TextureRect.new()
+	big.texture = avatar.texture
+	big.expand = true
+	big.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	big.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	big.offset_left = 48
+	big.offset_right = -48
+	big.offset_top = 48
+	big.offset_bottom = -48
+	big.material = null
+	overlay.add_child(big)
+
+	# Cerrar: clic/ESC
+	overlay.gui_input.connect(func(ev: InputEvent) -> void:
+		if ev is InputEventMouseButton and ev.pressed:
+			overlay.queue_free()
+		elif ev is InputEventKey and ev.pressed and ev.keycode == KEY_ESCAPE:
+			overlay.queue_free()
+	)
+
+	# animación de entrada
+	var tween := create_tween()
+	overlay.modulate = Color(1,1,1,0)
+	tween.tween_property(overlay, "modulate:a", 1.0, 0.15).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
