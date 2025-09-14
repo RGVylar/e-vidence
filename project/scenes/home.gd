@@ -53,7 +53,7 @@ func _on_btn_pressed(btn_name: String) -> void:
 		return
 
 	if router and router.has_method("go"):
-		var path := (scn as PackedScene).resource_path  # ← saca la ruta
+		var path := (scn as PackedScene).resource_path
 		print(">>> [Home] Router.go -> ", path)
 		router.call("go", path)
 	else:
