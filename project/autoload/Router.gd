@@ -29,8 +29,18 @@ func _swap_scene(new_scene: Node) -> void:
 	stack.append(new_scene)
 	root.add_child(new_scene)
 
-func go(path: String) -> void:
-	if not FileAccess.file_exists(path):
-		push_error("Router.go(): escena no existe -> %s" % path)
+func go(target) -> void:
+	var path := ""
+	if target is PackedScene:
+		path = target.resource_path
+	elif typeof(target) == TYPE_STRING:
+		path = String(target)
+	else:
+		push_error("Router.go: target inválido: %s" % typeof(target))
 		return
+
+	if path.is_empty():
+		push_error("Router.go: ruta vacía")
+		return
+
 	get_tree().change_scene_to_file(path)

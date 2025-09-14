@@ -60,7 +60,7 @@ func _make_contact_item(contact_id: String, name: String, avatar_path: String, p
 	btn.flat = false    
 	btn.focus_mode = Control.FOCUS_NONE
 	btn.text = ""
-	btn.custom_minimum_size = Vector2(0, 64)
+	btn.custom_minimum_size = Vector2(0, 250)
 	btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 
 	var sb_norm := StyleBoxFlat.new()
@@ -89,7 +89,7 @@ func _make_contact_item(contact_id: String, name: String, avatar_path: String, p
 
 	# Avatar redondo (44x44)
 	var avatar_wrap := Control.new()
-	avatar_wrap.custom_minimum_size = Vector2(44, 44)
+	avatar_wrap.custom_minimum_size = Vector2(190, 190)
 	avatar_wrap.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	row.add_child(avatar_wrap)
 
@@ -112,7 +112,7 @@ func _make_contact_item(contact_id: String, name: String, avatar_path: String, p
 
 	var name_lbl := Label.new()
 	name_lbl.text = name
-	name_lbl.add_theme_font_size_override("font_size", 18)
+	name_lbl.add_theme_font_size_override("font_size", 40)
 	col.add_child(name_lbl)
 
 	var prev_lbl := Label.new()
@@ -120,7 +120,7 @@ func _make_contact_item(contact_id: String, name: String, avatar_path: String, p
 	prev_lbl.modulate = Color(1,1,1,0.8)
 	prev_lbl.clip_text = true
 	prev_lbl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	prev_lbl.add_theme_font_size_override("font_size", 14)
+	prev_lbl.add_theme_font_size_override("font_size", 30)
 	prev_lbl.modulate = Color(1,1,1,0.8)
 	col.add_child(prev_lbl)
 

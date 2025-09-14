@@ -1,31 +1,40 @@
 extends Control
 
-@onready var btn_messages: BaseButton = $GridContainer/btn_messages
-@onready var btn_gallery:  BaseButton = $GridContainer/btn_gallery
-@onready var btn_mail:     BaseButton = $GridContainer/btn_mail
-@onready var lbl_case: Label = $CaseInfo   # crea un Label en la escena y llámalo CaseInfo
+@onready var btn_messages: BaseButton = %btn_messages
+@onready var btn_gallery:  BaseButton = %btn_gallery
+@onready var btn_mail:     BaseButton = %btn_mail
+@onready var btn_back:     BaseButton = %BtnBack
+@onready var lbl_case: Label = %CaseInfo
 
-var router: Node = null  # autoload de tipo Node
+@export var messaging_scene: PackedScene = preload("res://scenes/apps/Messaging.tscn")
+@export var gallery_scene:   PackedScene = preload("res://scenes/apps/Gallery.tscn")
+@export var mail_scene:      PackedScene = preload("res://scenes/apps/Mail.tscn")
 
-const SCENE_MAP := {
-	"btn_messages": "res://scenes/apps/Messaging.tscn",
-	"btn_gallery":  "res://scenes/apps/Gallery.tscn",
-	"btn_mail":     "res://scenes/apps/Mail.tscn",
-}
+var router: Node = null
+var SCENE_MAP: Dictionary
 
 func _ready() -> void:
-	# DB y GameState son Script Singletons → se usan directos
-	var ok: bool = DB.load_case(GameState.current_case_id)
+	print(">>> [Home] _ready() iniciado")
 	
+	SCENE_MAP = {
+		"btn_messages": messaging_scene,
+		"btn_gallery":  gallery_scene,
+		"btn_mail":     mail_scene,
+	}
+
+	btn_back.pressed.connect(_on_back_pressed)
+
+	var ok: bool = DB.load_case(GameState.current_case_id)
+	print(">>> [Home] load_case(", GameState.current_case_id, ") -> ", ok)
 	if lbl_case:
 		lbl_case.text = "Caso cargado: tutorial" if ok else "No se pudo cargar el caso"
 	if not ok:
 		push_warning("No se pudo cargar el caso: %s" % str(GameState.current_case_id))
 
-	# Router sí es Node autoload
 	router = get_node_or_null("/root/Router")
 	if router:
 		router.set("root", self)
+		print(">>> [Home] Router encontrado:", router)
 	else:
 		push_warning("Router no encontrado (usaré fallback change_scene)")
 
@@ -33,18 +42,24 @@ func _ready() -> void:
 		b.custom_minimum_size = Vector2(160, 160)
 		b.mouse_filter = Control.MOUSE_FILTER_STOP
 		b.pressed.connect(_on_btn_pressed.bind(b.name))
+		print(">>> [Home] Conectado botón:", b.name)
 
-func _on_btn_pressed(btn_name: String) -> void:  # <- renombrado (evita shadowing)
-	var path: String = (SCENE_MAP.get(btn_name, "") as String)
-	if path.is_empty():
-		push_warning("No hay ruta configurada para: %s" % btn_name)
-		return
-	if not FileAccess.file_exists(path):
-		push_error("Escena no encontrada: %s" % path)
+func _on_btn_pressed(btn_name: String) -> void:
+	print(">>> [Home] Pulsado:", btn_name)
+	var scn: PackedScene = SCENE_MAP.get(btn_name, null)
+	if scn == null:
+		print(">>> [Home] Falta escena para:", scn)
+		push_warning("Falta escena para: " + btn_name)
 		return
 
-	if router and (router.has_method("go") or router.has_method("goto")):
-		if router.has_method("go"): router.call("go", path)
-		else:                      router.call("goto", path)
+	if router and router.has_method("go"):
+		var path := (scn as PackedScene).resource_path  # ← saca la ruta
+		print(">>> [Home] Router.go -> ", path)
+		router.call("go", path)
 	else:
-		get_tree().change_scene_to_file(path)
+		print(">>> [Home] Fallback change_scene_to_packed")
+		get_tree().change_scene_to_packed(scn)
+		
+func _on_back_pressed() -> void:
+	print(">>> [Home] Pulsado BtnBack -> Home.tscn")
+	get_tree().change_scene_to_file("res://scenes//Main.tscn")

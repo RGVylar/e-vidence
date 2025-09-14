@@ -16,9 +16,9 @@ extends Control
 @onready var choice_picker: OptionButton = get_node_or_null("%ChoicePicker") as OptionButton
 
 const PATH_MESSAGING := "res://scenes/apps/Messaging.tscn"
-
-const BUBBLE_RATIO: float = 0.66   # % del ancho disponible
-const BUBBLE_MAX_W: float = 560.0  # tope de ancho
+const BUBBLE_MIN_H: float = 110.0
+const BUBBLE_RATIO: float = 0.86   # % del ancho disponible
+const BUBBLE_MAX_W: float = 820.0  # tope de ancho
 
 const DEBUG := true
 func dbg(m: String) -> void: if DEBUG: print("[CHAT] ", m)
@@ -56,6 +56,21 @@ func _ready() -> void:
 		var sb := StyleBoxFlat.new()
 		sb.bg_color = Color(0,0,0,0)
 		avatar_wrap.add_theme_stylebox_override("panel", sb)
+		
+	if is_instance_valid(avatar_wrap) and is_instance_valid(avatar):
+		avatar_wrap.custom_minimum_size = Vector2(64, 64)
+		avatar_wrap.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+		avatar_wrap.size_flags_vertical   = Control.SIZE_SHRINK_CENTER
+		avatar_wrap.size_flags_stretch_ratio = 1.0
+		avatar_wrap.clip_contents = true
+
+		# rellenar por completo el wrap
+		avatar.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		avatar.expand = true
+		avatar.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+
+	# mascara circular
+	_make_avatar_round()
 
 	# --- quick replies ---
 	if choice_picker:
@@ -72,6 +87,8 @@ func _ready() -> void:
 		_add_bubble(m.get("from",""), m.get("text",""))
 		i += 1
 	dbg("rendered msgs: %d" % i)
+	
+	chat_box.add_theme_constant_override("separation", 12)
 
 	await get_tree().process_frame
 	var sc := chat_box.get_parent() as ScrollContainer
@@ -95,17 +112,17 @@ func _add_bubble(sender: String, text: String) -> void:
 
 	var bubble := PanelContainer.new()
 	bubble.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	bubble.custom_minimum_size = Vector2(_target_bubble_width(), 0)
+	bubble.custom_minimum_size = Vector2(_target_bubble_width(), BUBBLE_MIN_H)
 
 	var sb := StyleBoxFlat.new()
-	sb.corner_radius_top_left = 8
-	sb.corner_radius_top_right = 8
-	sb.corner_radius_bottom_left = 8
-	sb.corner_radius_bottom_right = 8
-	sb.content_margin_left = 12
-	sb.content_margin_right = 12
-	sb.content_margin_top = 8
-	sb.content_margin_bottom = 8
+	sb.corner_radius_top_left = 12
+	sb.corner_radius_top_right = 12
+	sb.corner_radius_bottom_left = 12
+	sb.corner_radius_bottom_right = 12
+	sb.content_margin_left = 22
+	sb.content_margin_right = 22
+	sb.content_margin_top = 18
+	sb.content_margin_bottom = 18
 	sb.bg_color = Color(0.18,0.35,0.18,0.95) if sender == "Yo" else Color(0.22,0.22,0.22,0.95)
 	bubble.add_theme_stylebox_override("panel", sb)
 
@@ -118,6 +135,8 @@ func _add_bubble(sender: String, text: String) -> void:
 	lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	lbl.add_theme_color_override("default_color", Color.WHITE)
 	lbl.text = text
+	lbl.add_theme_font_size_override("normal_font_size", 30)
+	lbl.add_theme_constant_override("line_separation", 8)
 
 	bubble.add_child(lbl)
 	row.add_child(bubble)
@@ -159,6 +178,13 @@ func _on_send_pressed() -> void:
 func _fill_replies(contact_id: String, case_data: Dictionary) -> void:
 	if not is_instance_valid(choice_picker):
 		push_error("[CHAT] %ChoicePicker no encontrado"); return
+	choice_picker.add_theme_font_size_override("font_size", 32)
+	var pm := choice_picker.get_popup()
+	pm.add_theme_font_size_override("font_size", 32)
+	pm.add_theme_constant_override("v_separation", 8)
+	pm.add_theme_constant_override("item_start_padding", 16)
+	pm.add_theme_constant_override("item_end_padding", 16)
+	pm.reset_size()  # recalcula con los overrides
 
 	choice_picker.clear()
 
