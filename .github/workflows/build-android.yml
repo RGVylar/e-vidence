@@ -11,17 +11,19 @@ jobs:
     container: barichello/godot-ci:4.2.2
     steps:
       - uses: actions/checkout@v4
-
-      - run: cd project
+        with:
+          lfs: true  # por si usas Git LFS para assets
 
       - name: Export APK (release)
+        working-directory: project
         run: |
           mkdir -p build
           godot --headless --verbose \
+            --path . \
             --export-release "Android" build/evidence.apk
 
-      - name: Publicar APK como artefacto
+      - name: Artifact
         uses: actions/upload-artifact@v4
         with:
           name: evidence-apk
-          path: build/evidence.apk
+          path: project/build/evidence.apk
