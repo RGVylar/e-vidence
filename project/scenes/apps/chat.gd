@@ -52,8 +52,7 @@ func _ready() -> void:
 
 	if avatar_wrap:
 		avatar_wrap.custom_minimum_size = Vector2(40, 40)
-		avatar_wrap.clip_contents = false     # <-- quitamos el recorte rectangular
-		# si quieres mantener el fondo/transparencia del wrap:
+		avatar_wrap.clip_contents = false
 		var sb := StyleBoxFlat.new()
 		sb.bg_color = Color(0,0,0,0)
 		avatar_wrap.add_theme_stylebox_override("panel", sb)
@@ -127,7 +126,6 @@ func _add_bubble(sender: String, text: String) -> void:
 # ---------- Bottom bar actions ----------
 
 func _on_add_pressed() -> void:
-	# Placeholder: mostrar la primera prueba del inventario
 	var ids := GameState.inventory.keys()
 	if ids.is_empty():
 		_add_bubble("Yo", "No tengo pruebas aún.")
@@ -177,7 +175,7 @@ func _fill_replies(contact_id: String, case_data: Dictionary) -> void:
 	for v in opts:
 		choice_picker.add_item(str(v))
 
-	choice_picker.select(0)  # para que se vea texto
+	choice_picker.select(0)
 	dbg("replies for %s -> %d (text='%s')" % [contact_id, choice_picker.item_count, choice_picker.text])
 
 func _make_avatar_round() -> void:
@@ -202,7 +200,7 @@ func _make_avatar_round() -> void:
 	# que el TextureRect RELLENE su rect y centre la imagen
 	avatar.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 	avatar.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	avatar.custom_minimum_size = Vector2.ZERO  # evita ser más grande que su padre
+	avatar.custom_minimum_size = Vector2.ZERO
 
 func _on_back_pressed() -> void:
 	get_tree().change_scene_to_file(PATH_MESSAGING)
