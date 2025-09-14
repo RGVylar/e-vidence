@@ -27,11 +27,28 @@ jobs:
           relative_export_path: "project/build"
           cache: true
 
+      - name: Read app version from Godot project
+        run: |
+          VER=$(awk '
+            $0 ~ /^\[application\]/ {in_app=1; next}
+            $0 ~ /^\[/ {in_app=0}
+            in_app && $0 ~ /^config\/version=/ {
+              gsub(/.*="/,""); gsub(/"$/,""); print; exit
+            }' project/project.godot)
+          [ -z "$VER" ] && VER="0.0.0"
+          echo "APP_VERSION=$VER" >> "$GITHUB_ENV"
+
+      - name: Rename APK with version
+        run: |
+          mv project/build/evidence.apk \
+            project/build/evidence-v${{ env.APP_VERSION }}-build${{ github.run_number }}.apk
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: android-apk
           path: project/build/**/*.apk
+          retention-days: 7
 
       - name: Create GitHub Release
         id: create_release
@@ -39,7 +56,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: build-${{ github.run_number }}
+          tag_name: v${{ env.APP_VERSION }} 
           commitish: ${{ github.sha }}
           release_name: "Android debug build #${{ github.run_number }}"
           draft: false
