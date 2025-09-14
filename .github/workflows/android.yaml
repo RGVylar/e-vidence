@@ -50,24 +50,12 @@ jobs:
           path: project/build/**/*.apk
           retention-days: 7
 
-      - name: Create GitHub Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Publish APK to Release (create or update)
+        uses: softprops/action-gh-release@v2
         with:
-          tag_name: v${{ env.APP_VERSION }} 
-          commitish: ${{ github.sha }}
-          release_name: "Android debug build #${{ github.run_number }}"
-          draft: false
+          tag_name: v${{ env.APP_VERSION }}
+          name: "Android debug build #${{ github.run_number }}"
           prerelease: true
-
-      - name: Upload APK to Release (raw .apk)
-        uses: actions/upload-release-asset@v1
+          files: project/build/Android/evidence-v${{ env.APP_VERSION }}-build${{ github.run_number }}.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: project/build/Android/evidence-v${{ env.APP_VERSION }}-build${{ github.run_number }}.apk
-          asset_name: evidence-v${{ env.APP_VERSION }}-build${{ github.run_number }}.apk
-          asset_content_type: application/vnd.android.package-archive
