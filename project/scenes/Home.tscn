@@ -1,7 +1,7 @@
 [gd_scene load_steps=5 format=3 uid="uid://btqne4qta7yc4"]
 
 [ext_resource type="Script" uid="uid://drdwsfbbrcfbt" path="res://scenes/home.gd" id="1_svoro"]
-[ext_resource type="Texture2D" uid="uid://bbrsmiq0alvwd" path="res://ui/icons/mensajeria.webp" id="2_svoro"]
+[ext_resource type="Texture2D" uid="uid://1apgi6slbmed" path="res://ui/icons/mensajeria.png" id="2_svoro"]
 [ext_resource type="Texture2D" uid="uid://d0j1pwf73owq7" path="res://ui/icons/gallery.webp" id="3_svoro"]
 [ext_resource type="Texture2D" uid="uid://bmqircwnlj4ix" path="res://ui/icons/mail.webp" id="4_yk4sq"]
 
