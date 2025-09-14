@@ -1,0 +1,42 @@
+name: Export Android APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+    paths:
+      - "project.godot"
+      - "export_presets.cfg"
+      - "**/*.gd"
+      - "**/*.tscn"
+      - "**/*.png"
+      - "**/*.ogg"
+      - "**/*.import"
+
+env:
+  GODOT_VERSION: "4.3"
+  ANDROID_PRESET: "Android"
+
+jobs:
+  export-android:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Export APK
+        uses: firebelley/godot-export@v5
+        with:
+          godot-version: ${{ env.GODOT_VERSION }}
+          export-debug: true
+          cache: true
+          project-dir: "project"
+          presets-to-export: ${{ env.ANDROID_PRESET }}
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apk
+          path: |
+            **/*.apk
+            **/*.aab
