@@ -41,7 +41,7 @@ jobs:
       - name: Rename APK with version
         run: |
           mv project/build/Android/evidence.apk \
-            project/build/Android/evidence-v${{ env.APP_VERSION }}-build${{ github.run_number }}.apk
+            project/build/Android/evidence-v${{ env.APP_VERSION }}.apk
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -56,6 +56,6 @@ jobs:
           tag_name: v${{ env.APP_VERSION }}
           name: "Android debug build #${{ github.run_number }}"
           prerelease: true
-          files: project/build/Android/evidence-v${{ env.APP_VERSION }}-build${{ github.run_number }}.apk
+          files: project/build/Android/evidence-v${{ env.APP_VERSION }}.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
