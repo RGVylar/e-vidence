@@ -1,18 +1,17 @@
-[gd_scene load_steps=2 format=3 uid="uid://dwm4h1wfn6ekp"]
+[gd_scene load_steps=2 format=3 uid="uid://csdw3gp4qsysb"]
 
-[ext_resource type="Script" uid="uid://s81lhqllqbay" path="res://scenes/apps/gallery.gd" id="1_30n4k"]
+[ext_resource type="Script" uid="uid://bw42xddaegf58" path="res://scenes/apps/browser.gd" id="1_ofx7s"]
 
-[node name="Gallery" type="Control"]
+[node name="Browser" type="Control"]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-script = ExtResource("1_30n4k")
+script = ExtResource("1_ofx7s")
 
 [node name="VBoxContainer" type="VBoxContainer" parent="."]
-layout_mode = 0
 offset_right = 899.0
 offset_bottom = 40.0
 
@@ -31,5 +30,5 @@ text = "⬅ Volver"
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 40
-text = "Galeria"
+text = "Browser"
 horizontal_alignment = 1

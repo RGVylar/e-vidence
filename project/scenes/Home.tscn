@@ -1,9 +1,10 @@
-[gd_scene load_steps=5 format=3 uid="uid://btqne4qta7yc4"]
+[gd_scene load_steps=6 format=3 uid="uid://btqne4qta7yc4"]
 
 [ext_resource type="Script" uid="uid://drdwsfbbrcfbt" path="res://scenes/home.gd" id="1_svoro"]
 [ext_resource type="Texture2D" uid="uid://1apgi6slbmed" path="res://ui/icons/mensajeria.png" id="2_svoro"]
 [ext_resource type="Texture2D" uid="uid://d0j1pwf73owq7" path="res://ui/icons/gallery.webp" id="3_svoro"]
 [ext_resource type="Texture2D" uid="uid://bmqircwnlj4ix" path="res://ui/icons/mail.webp" id="4_yk4sq"]
+[ext_resource type="Texture2D" uid="uid://btf2kcj7ydq7r" path="res://ui/icons/browser.webp" id="5_72wqp"]
 
 [node name="Home" type="Control"]
 layout_mode = 3
@@ -61,7 +62,7 @@ columns = 3
 [node name="btn_messages" type="TextureButton" parent="MarginContainer/VBoxContainer/GridContainer"]
 unique_name_in_owner = true
 layout_mode = 2
-size_flags_horizontal = 3
+size_flags_horizontal = 6
 texture_normal = ExtResource("2_svoro")
 
 [node name="btn_gallery" type="TextureButton" parent="MarginContainer/VBoxContainer/GridContainer"]
@@ -75,3 +76,9 @@ unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 texture_normal = ExtResource("4_yk4sq")
+
+[node name="btn_browser" type="TextureButton" parent="MarginContainer/VBoxContainer/GridContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 6
+texture_normal = ExtResource("5_72wqp")

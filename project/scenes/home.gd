@@ -1,14 +1,17 @@
 extends Control
 
 @onready var btn_messages: BaseButton = %btn_messages
+@onready var lbl_case: Label = %CaseInfo
+
 @onready var btn_gallery:  BaseButton = %btn_gallery
 @onready var btn_mail:     BaseButton = %btn_mail
 @onready var btn_back:     BaseButton = %BtnBack
-@onready var lbl_case: Label = %CaseInfo
+@onready var btn_browser:     BaseButton = %btn_browser
 
 @export var messaging_scene: PackedScene = preload("res://scenes/apps/Messaging.tscn")
 @export var gallery_scene:   PackedScene = preload("res://scenes/apps/Gallery.tscn")
 @export var mail_scene:      PackedScene = preload("res://scenes/apps/Mail.tscn")
+@export var browser_scene:   PackedScene = preload("res://scenes/apps/Browser.tscn")
 
 var router: Node = null
 var SCENE_MAP: Dictionary
@@ -20,6 +23,7 @@ func _ready() -> void:
 		"btn_messages": messaging_scene,
 		"btn_gallery":  gallery_scene,
 		"btn_mail":     mail_scene,
+		"btn_browser":  browser_scene
 	}
 
 	btn_back.pressed.connect(_on_back_pressed)
@@ -38,11 +42,14 @@ func _ready() -> void:
 	else:
 		push_warning("Router no encontrado (usaré fallback change_scene)")
 
-	for b in [btn_messages, btn_gallery, btn_mail]:
-		b.custom_minimum_size = Vector2(160, 160)
-		b.mouse_filter = Control.MOUSE_FILTER_STOP
-		b.pressed.connect(_on_btn_pressed.bind(b.name))
-		print(">>> [Home] Conectado botón:", b.name)
+	for btn_name in SCENE_MAP.keys():
+		var btn: BaseButton = get_node_or_null("%" + btn_name) as BaseButton
+		if btn == null:
+			push_warning("Botón no encontrado: %" + btn_name)
+			continue
+		btn.custom_minimum_size = Vector2(160, 160)
+		btn.mouse_filter = Control.MOUSE_FILTER_STOP
+		btn.pressed.connect(_on_btn_pressed.bind(btn_name))
 
 func _on_btn_pressed(btn_name: String) -> void:
 	print(">>> [Home] Pulsado:", btn_name)
