@@ -12,7 +12,31 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          lfs: true  # por si usas Git LFS para assets
+          lfs: true
+
+      - name: Instalar JDK y utilidades
+        run: |
+          apt-get update
+          apt-get install -y openjdk-17-jdk wget unzip
+          java -version
+
+      - name: Instalar export templates 4.2.2
+        env:
+          GODOT_VERSION: 4.2.2
+        run: |
+          mkdir -p /github/home/.local/share/godot/export_templates
+          wget -q https://downloads.tuxfamily.org/godotengine/${GODOT_VERSION}/export_templates/Godot_v${GODOT_VERSION}-stable_export_templates.tpz -O /tmp/tpl.tpz
+          unzip -q /tmp/tpl.tpz -d /tmp/tpl
+          mv /tmp/tpl/templates /github/home/.local/share/godot/export_templates/${GODOT_VERSION}.stable
+
+      - name: Configurar EditorSettings (JDK)
+        run: |
+          mkdir -p /github/home/.config/godot
+          cat > /github/home/.config/godot/editor_settings-4.tres << 'EOF'
+          [export]
+          android/jdk_path="/usr/lib/jvm/java-17-openjdk-amd64"
+          EOF
+          cat /github/home/.config/godot/editor_settings-4.tres
 
       - name: Export APK (release)
         working-directory: project
@@ -22,7 +46,7 @@ jobs:
             --path . \
             --export-release "Android" build/evidence.apk
 
-      - name: Artifact
+      - name: Publicar APK
         uses: actions/upload-artifact@v4
         with:
           name: evidence-apk

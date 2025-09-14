@@ -7,10 +7,10 @@ extends Control
 
 var router: Node = null  # autoload de tipo Node
 
-const SCENE_MAP: Dictionary[String, String] = {
-	"btn_messages": "res://scenes//apps//Messaging.tscn",
-	"btn_gallery":  "res://scenes//apps//Gallery.tscn",
-	"btn_mail":     "res://scenes//apps//Mail.tscn",
+const SCENE_MAP := {
+	"btn_messages": "res://scenes/apps/Messaging.tscn",
+	"btn_gallery":  "res://scenes/apps/Gallery.tscn",
+	"btn_mail":     "res://scenes/apps/Mail.tscn",
 }
 
 func _ready() -> void:
