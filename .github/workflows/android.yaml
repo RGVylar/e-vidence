@@ -23,14 +23,28 @@ jobs:
             Android
           relative_export_path: "project/build"
           cache: true
-      - name: List exports
-        run: |
-          pwd
-          ls -la
-          ls -la project/build || true
-          ls -la .godot/exports || true
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: android-apk
           path: project/build/**/*.apk
+
+      - name: Create GitHub Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: build-${{ github.run_number }}
+          release_name: "Android debug build #${{ github.run_number }}"
+          draft: false
+          prerelease: true
+
+      - name: Upload APK to Release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: project/build/Android/android-debug.apk
+          asset_name: android-debug.apk
+          asset_content_type: application/vnd.android.package-archive
