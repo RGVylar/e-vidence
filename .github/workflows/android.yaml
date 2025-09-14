@@ -5,6 +5,7 @@ on:
   push:
     branches: [ main ]
     paths:
+      - ".github/workflows/android.yml"
       - "project.godot"
       - "export_presets.cfg"
       - "**/*.gd"
