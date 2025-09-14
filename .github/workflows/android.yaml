@@ -2,8 +2,7 @@ name: Export Android APK
 
 on:
   workflow_dispatch:
-  push:
-    branches: [ main ]
+  push: {}
 
 env:
   GODOT_VERSION: "4.3"
