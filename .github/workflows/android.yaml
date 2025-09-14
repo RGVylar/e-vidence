@@ -4,15 +4,6 @@ on:
   workflow_dispatch:
   push:
     branches: [ main ]
-    paths:
-      - ".github/workflows/android.yml"
-      - "project.godot"
-      - "export_presets.cfg"
-      - "**/*.gd"
-      - "**/*.tscn"
-      - "**/*.png"
-      - "**/*.ogg"
-      - "**/*.import"
 
 env:
   GODOT_VERSION: "4.3"
