@@ -1,0 +1,27 @@
+name: Build Android (Godot 4)
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    container: barichello/godot-ci:4.2.2
+    steps:
+      - uses: actions/checkout@v4
+
+      - run: cd project
+
+      - name: Export APK (release)
+        run: |
+          mkdir -p build
+          godot --headless --verbose \
+            --export-release "Android" build/evidence.apk
+
+      - name: Publicar APK como artefacto
+        uses: actions/upload-artifact@v4
+        with:
+          name: evidence-apk
+          path: build/evidence.apk
