@@ -21,8 +21,14 @@ jobs:
           export_debug: true
           presets_to_export: |
             Android
-          relative_export_path: "/build"
+          relative_export_path: "project/build"
           cache: true
+      - name: List exports
+        run: |
+          pwd
+          ls -la
+          ls -la project/build || true
+          ls -la .godot/exports || true
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
