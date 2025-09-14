@@ -1,34 +1,14 @@
-name: Export Android APK
+name: Export APK
+uses: firebelley/godot-export@v7.0.0
+  with:
+    godot_executable_download_url: https://downloads.tuxfamily.org/godotengine/4.4/Godot_v4.4-stable_linux.x86_64.zip
+    godot_export_templates_download_url: https://downloads.tuxfamily.org/godotengine/4.4/export_templates/Godot_v4.4-stable_export_templates.tpz
 
-on:
-  workflow_dispatch:
-  push: {}
+    relative_project_path: "project"
 
-env:
-  GODOT_VERSION: "4.4"
-  ANDROID_PRESET: "Android"
+    export_debug: true
+    presets_to_export: |
+      Android
 
-jobs:
-  export-android:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Export APK
-        uses: firebelley/godot-export@v7.0.0
-        with:
-          godot-version: ${{ env.GODOT_VERSION }}
-          relative-project-path: "./"
-          export-debug: true
-          cache: true
-          project-dir: "project"
-          presets-to-export: ${{ env.ANDROID_PRESET }}
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: android-apk
-          path: |
-            **/*.apk
-            **/*.aab
+    relative_export_path: "build"
+    cache: true
