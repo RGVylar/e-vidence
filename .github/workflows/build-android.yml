@@ -17,7 +17,7 @@ jobs:
       - name: Instalar JDK y utilidades
         run: |
           apt-get update
-          apt-get install -y openjdk-17-jdk wget unzip
+          apt-get install -y openjdk-17-jdk wget unzip curl
           java -version
 
       - name: Instalar export templates ${{ env.GODOT_VERSION }}
