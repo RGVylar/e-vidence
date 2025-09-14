@@ -20,14 +20,43 @@ jobs:
           apt-get install -y openjdk-17-jdk wget unzip
           java -version
 
-      - name: Instalar export templates 4.2.2
+      - name: Instalar export templates ${{ env.GODOT_VERSION }}
         env:
           GODOT_VERSION: 4.2.2
         run: |
-          mkdir -p /github/home/.local/share/godot/export_templates
-          wget -q https://downloads.tuxfamily.org/godotengine/${GODOT_VERSION}/export_templates/Godot_v${GODOT_VERSION}-stable_export_templates.tpz -O /tmp/tpl.tpz
-          unzip -q /tmp/tpl.tpz -d /tmp/tpl
-          mv /tmp/tpl/templates /github/home/.local/share/godot/export_templates/${GODOT_VERSION}.stable
+          set -eux
+          export TPL_DIR="$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable"
+          if [ -d "$TPL_DIR" ]; then
+            echo "Templates ya instalados en $TPL_DIR"
+            exit 0
+          fi
+
+          mkdir -p "$TPL_DIR" /tmp/tpl
+          URL="https://downloads.tuxfamily.org/godotengine/${GODOT_VERSION}/export_templates/Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
+
+          # Descarga con reintentos
+          for i in 1 2 3; do
+            echo "Descargando templates (intento $i)..."
+            if curl -fL "$URL" -o /tmp/tpl.tpz; then
+              break
+            fi
+            sleep 2
+          done
+
+          # Verifica que pesa algo
+          ls -lh /tmp/tpl.tpz
+          file /tmp/tpl.tpz
+
+          # Descomprime y mueve CONTENIDO a la carpeta de templates
+          unzip -o /tmp/tpl.tpz -d /tmp/tpl
+          if [ -d /tmp/tpl/templates ]; then
+            mv /tmp/tpl/templates/* "$TPL_DIR"/
+          else
+            # fallback: algunos mirrors descomprimen directo
+            mv /tmp/tpl/* "$TPL_DIR"/
+          fi
+
+          echo "Templates instalados en: $TPL_DIR"
 
       - name: Configurar EditorSettings (JDK)
         run: |

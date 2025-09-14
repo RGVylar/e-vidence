@@ -3,7 +3,7 @@
 	  { "id": "a1", "name": "Pilar",  "avatar": "res://assets/avatars/pilar.jpg" },
 	  { "id": "b2", "name": "David",  "avatar": "res://assets/avatars/david.jpg" },
 	  { "id": "c3", "name": "Silva",  "avatar": "res://assets/avatars/silva.jpg" },
-	  { "id": "d4", "name": "Neo",    "avatar": "res://assets/avatars/neo.webp" }
+	  { "id": "d4", "name": "Neo",    "avatar": "res://assets/avatars/neo.jpeg" }
 	],
   "chats": {
 	"a1": [
