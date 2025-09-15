@@ -1,0 +1,217 @@
+{
+  "contacts": [
+    { "id": "a1", "name": "Pilar",  "avatar": "res://assets/avatars/pilar.jpg" },
+    { "id": "b2", "name": "David",  "avatar": "res://assets/avatars/david.jpg" },
+    { "id": "c3", "name": "Silva",  "avatar": "res://assets/avatars/silva.jpg" },
+    { "id": "d4", "name": "Neo",    "avatar": "res://assets/avatars/neo.jpeg", "requires": ["contact_d4_unlocked"] }
+  ],
+  "facts": {},
+  "chats": {
+    "a1": {
+      "history": [
+        { "from": "Pilar", "text": "Te mandé una foto, ¿la viste?" }
+      ],
+      "options": [
+        {
+          "id": "pilar_smalltalk",
+          "text": "Perdona, ¿qué tal tu día? (charla vacía)",
+          "requires": [ "!seen_photo" ],
+          "npc_reply": [ "Luego te cuento, mira la foto primero." ],
+          "effects": [ "pilar_smalltalk_done" ]
+        },
+        {
+          "id": "ask_photo",
+          "text": "¿Qué foto? No me llegó.",
+          "requires": ["!seen_photo"],
+          "npc_reply": [
+            "Te la reenvío ahora.",
+            "Fíjate en el reflejo del marco."
+          ],
+          "effects": ["seen_photo", "gallery_hint_reflection", "give_evidence:photo_frame"]
+        },
+        {
+          "id": "guess_code_wrong",
+          "text": "El código será 1234, ¿no?",
+          "requires": [ "seen_photo", "!code_8421" ],
+          "npc_reply": [ "No, eso no es. Prueba con otra pista." ],
+          "effects": [ "wrong_code_attempted" ]
+        },
+        {
+          "id": "ask_code",
+          "text": "Creo que lo pillo: ¿el código es 8421?",
+          "requires": [ "seen_photo" ],
+          "npc_reply": [ "Sí. 8421. Úsalo con cuidado." ],
+          "effects": [ "code_8421", "has_half_pwd" ]
+        },
+        {
+          "id": "ask_keyword",
+          "text": "¿La palabra 'IRIS' te suena de algo?",
+          "requires": [ "seen_photo", "!has_keyword_iris" ],
+          "npc_reply": [ "¡Sí! Está grabada en el marco. IRIS." ],
+          "effects": [ "has_keyword_iris" ]
+        },
+        {
+          "id": "pilar_dead_end",
+          "text": "¿Y si quemamos el móvil y ya? (broma)",
+          "requires": [ "seen_photo" ],
+          "npc_reply": [ "Jaja, muy gracioso. Volvamos al plan." ],
+          "effects": [ "dead_end_joke" ]
+        }
+      ]
+    },
+
+    "b2": {
+      "history": [
+        { "from": "David", "text": "Tengo pistas nuevas, pero me falta una palabra." }
+      ],
+      "options": [
+        {
+          "id": "tell_keyword",
+          "text": "La palabra es IRIS.",
+          "requires": [ "has_keyword_iris" ],
+          "npc_reply": [
+            "¡Eso era! Entonces el 'salt' es 7F-A9.",
+            "Sin eso, el archivo no abre."
+          ],
+          "effects": ["has_salt", "give_evidence:salt_note"]
+        },
+        {
+          "id": "tell_code",
+          "text": "Tengo un código de 4 dígitos: 8421.",
+          "requires": [ "code_8421" ],
+          "npc_reply": [
+            "Perfecto. Con 8421 y el 'salt' puedo comprobar el checksum.",
+            "Necesitamos además la fecha exacta del marco."
+          ],
+          "effects": [ "needs_frame_date" ]
+        },
+        {
+          "id": "ask_useless",
+          "text": "¿Y si probamos fuerza bruta?",
+          "requires": [],
+          "npc_reply": [ "No compensa, tardaríamos días. Mejor busca la pista del marco." ],
+          "effects": [ "dead_end_bruteforce" ]
+        },
+        {
+          "id": "give_frame_date",
+          "text": "La fecha del marco es 2019-06-21.",
+          "requires": [ "frame_date_found" ],
+          "npc_reply": [
+            "Checksum OK. Archivo descifrado.",
+            "Dentro hay un nombre: 'Ágata'."
+          ],
+          "effects": [ "checksum_ok", "name_agata" ]
+        }
+      ]
+    },
+
+    "c3": {
+      "history": [
+        { "from": "Silva", "text": "Si tenéis algo cifrado, puedo ayudar a cruzar datos." }
+      ],
+      "options": [
+        {
+          "id": "ask_where_find_date",
+          "text": "¿Dónde mirarías para encontrar una fecha escondida?",
+          "requires": [ "seen_photo", "!frame_date_found" ],
+          "npc_reply": [
+            "Si el marco tiene reflejo, mira el borde inferior derecho.",
+            "A veces hay números grabados."
+          ],
+          "effects": [ "silva_hint_date" ]
+        },
+        {
+          "id": "confirm_date_found",
+          "text": "Ya la tengo: 2019-06-21.",
+          "requires": [ "silva_hint_date", "seen_photo", "!frame_date_found" ],
+          "npc_reply": [ "Nice. Pásasela a David para validar checksum." ],
+          "effects": [ "frame_date_found" ]
+        },
+        {
+          "id": "ask_after_name",
+          "text": "Tengo el nombre 'Ágata'. ¿Te dice algo?",
+          "requires": [ "name_agata" ],
+          "npc_reply": [
+            "Ágata… eso abre la carpeta de 'galleria/2'.",
+            "Revisa la app de galería otra vez."
+          ],
+          "effects": [ "unlocked_gallery_2", "give_evidence:secret_photo" ] 
+        },
+        {
+          "id": "silva_dead_end",
+          "text": "¿Lo dejamos para mañana? (ruta muerta)",
+          "requires": [],
+          "npc_reply": ["Como quieras, pero perderemos tiempo."],
+          "effects": ["dead_end_delay"]
+        }
+      ]
+    }
+  },
+
+
+  "gallery": [
+    { "id": "prueba",  "path": "res://assets/case/tutorial/prueba.jpg" },
+    { "id": "captura", "path": "res://assets/case/tutorial/captura.jpg" },
+    { "id": "secret",  "path": "res://assets/case/tutorial/secret.jpeg", "requires": ["unlocked_gallery_2"] }
+  ],
+
+  "evidence":
+    [
+        {
+            "id": "photo_frame",
+            "name": "Foto del marco",
+            "desc": "Foto donde se ve un reflejo en el borde.",
+            "reactions": {
+                "a1": {
+                "text": "Te enseño la foto del marco.",
+                "npc_reply": [
+                    "Eso es. Mira el borde inferior derecho.",
+                    "Se lee 'IRIS' y la fecha."
+                ],
+                "effects": ["has_keyword_iris", "frame_date_found"]
+                },
+                "b2": {
+                "requires": ["has_salt"],
+                "text": "Fíjate en la numeración del borde.",
+                "npc_reply": ["Con esto cerramos el checksum."],
+                "effects": ["checksum_ok"]
+                }
+            }
+        },
+        {
+            "id": "salt_note",
+            "name": "Nota con 'salt' 7F-A9",
+            "desc": "Apunte con el salt.",
+            "reactions": {
+            "b2": {
+                "text": "Tengo este 'salt' apuntado.",
+                "npc_reply": ["¡Clave! Ahora sí puedo probar combinaciones."],
+                "effects": ["has_salt"]
+            }
+            }
+        },
+        {
+            "id": "secret_photo",
+            "name": "Foto secreta (¿Neo?)",
+            "desc": "Foto encontrada en la galería 2.",
+            "reactions": {
+                "b2": {
+                "text": "Mira esta foto secreta… ¿te suena?",
+                "npc_reply": [
+                    "¡Ese es Neo! Te paso su contacto.",
+                    "Es mejor que hables directamente con él."
+                ],
+                "effects": ["unlock_contact:d4"]
+                },
+                "c3": {
+                "text": "Silva, esta cara me suena…",
+                "npc_reply": [
+                    "Confirmo: es Neo. Te envío su contacto.",
+                    "Cuando le escribas, di que vas de mi parte."
+                ],
+                "effects": ["unlock_contact:d4"]
+                }
+            }
+        }
+    ]
+}

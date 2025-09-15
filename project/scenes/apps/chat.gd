@@ -11,9 +11,11 @@ extends Control
 @onready var btn_back: Button        = %BtnBack
 
 # --- Bottom bar (nuevo) ---
-@onready var add_btn: Button            = get_node_or_null("%AddBtn")       as Button
-@onready var send_btn: Button           = get_node_or_null("%SendBtn")      as Button
+@onready var add_btn: Button            = get_node_or_null("%BtnAdd")       as Button
+@onready var send_btn: Button           = get_node_or_null("%BtnSend")      as Button
 @onready var choice_picker: OptionButton = get_node_or_null("%ChoicePicker") as OptionButton
+
+var _opts_cache: Array = []
 
 const PATH_MESSAGING := "res://scenes/apps/Messaging.tscn"
 const BUBBLE_MIN_H: float = 110.0
@@ -71,22 +73,27 @@ func _ready() -> void:
 
 	# mascara circular
 	_make_avatar_round()
+	DB.facts_changed.connect(func(_k): _refresh_replies())
 
 	# --- quick replies ---
 	if choice_picker:
+		dbg("after fill: items=%d sel=%d" % [choice_picker.item_count, choice_picker.get_selected()])
 		_fill_replies(GameState.current_thread, DB.current_case as Dictionary)
-
+	
 	# --- pinta el hilo ---
 	var chats: Dictionary = case_data.get("chats", {}) as Dictionary
-	var msgs: Array = chats.get(contact_id, []) as Array
+	var entry: Variant = chats.get(contact_id)
+	var history: Array = []
+	if typeof(entry) == TYPE_ARRAY:
+		history = entry as Array
+	elif typeof(entry) == TYPE_DICTIONARY:
+		history = (entry as Dictionary).get("history", []) as Array
 
 	for n in chat_box.get_children(): n.queue_free()
-	var i := 0
-	for m_v in msgs:
+	for m_v in history:
 		var m: Dictionary = m_v as Dictionary
-		_add_bubble(m.get("from",""), m.get("text",""))
-		i += 1
-	dbg("rendered msgs: %d" % i)
+		_add_bubble(String(m.get("from","")), String(m.get("text","")))
+	# dbg("rendered msgs: %d" % i)
 	
 	chat_box.add_theme_constant_override("separation", 12)
 
@@ -145,64 +152,146 @@ func _add_bubble(sender: String, text: String) -> void:
 # ---------- Bottom bar actions ----------
 
 func _on_add_pressed() -> void:
-	var ids := GameState.inventory.keys()
-	if ids.is_empty():
-		_add_bubble("Yo", "No tengo pruebas aún.")
-	else:
-		_add_bubble("Yo", "Presento la prueba: %s" % str(ids[0]))
+	dbg("add pressed (present evidence)")
+	var contact_id := GameState.current_thread
 
-	await get_tree().process_frame
-	var sc := chat_box.get_parent() as ScrollContainer
-	if sc: sc.scroll_vertical = sc.get_v_scroll_bar().max_value
+	# pedir a DB la lista de pruebas presentables ahora
+	var presentables: Array = []
+	if "get_presentable_evidence" in DB or DB.has_method("get_presentable_evidence"):
+		presentables = DB.get_presentable_evidence(contact_id)
+
+	if presentables.is_empty():
+		_add_bubble("Yo", "No tengo pruebas útiles ahora.")
+		_scroll_to_bottom()
+		return
+
+	# Popup simple para elegir
+	var pm := PopupMenu.new()
+	pm.name = "_EvidenceMenu"
+	pm.add_theme_font_size_override("font_size", 32)
+	pm.add_theme_constant_override("v_separation", 8)
+	add_child(pm)
+
+	for ev_v in presentables:
+		var ev := ev_v as Dictionary
+		var idx := pm.item_count
+		pm.add_item(String(ev.get("name","(sin nombre)")))
+		pm.set_item_metadata(idx, String(ev.get("id","")))
+
+	pm.index_pressed.connect(func(ix: int) -> void:
+		var evid_id := String(pm.get_item_metadata(ix))
+		dbg("present evidence selected: %s" % evid_id)
+		if DB.has_method("apply_evidence"):
+			var res := DB.apply_evidence(contact_id, evid_id)
+			if not res.is_empty():
+				_add_bubble("Yo", String(res.get("player_text","Presento prueba.")))
+				for line_v in (res.get("npc_reply", []) as Array):
+					_add_bubble(name_lbl.text if name_lbl else "NPC", String(line_v))
+				_refresh_replies()   # por si desbloquea opciones
+				_scroll_to_bottom()
+		pm.queue_free()
+	)
+
+	# abrir bajo el botón Add
+	var gpos := add_btn.get_global_position() if is_instance_valid(add_btn) else Vector2.ZERO
+	pm.position = gpos + Vector2(0, add_btn.size.y)
+	pm.popup()
+
 
 func _on_send_pressed() -> void:
-	if not is_instance_valid(choice_picker): return
-	if choice_picker.item_count == 0: return
+	dbg("send pressed")
+	if not is_instance_valid(choice_picker):
+		dbg("choice_picker INVALID");
+		return
+	dbg("item_count=%d selected=%d" % [choice_picker.item_count, choice_picker.get_selected()])
+
+	if choice_picker.item_count == 0:
+		dbg("no items → abort");
+		return
+
 	var i := choice_picker.get_selected()
-	if i < 0: return
+	if i < 0:
+		dbg("selected = -1 → selecciono 0 por seguridad")
+		return
+
 	var text := choice_picker.get_item_text(i)
-	if text.strip_edges() == "": return
+	dbg("selected text='%s'" % text)
 
-	_add_bubble("Yo", text)
+	# Sistema nuevo con options/facts
+	if DB.has_method("apply_option"):
+		var meta: Variant = choice_picker.get_item_metadata(i)
+		dbg("metadata type_id=%d value=%s" % [typeof(meta), str(meta)])
+		var opt_id: String = String(choice_picker.get_item_metadata(i))
+		if opt_id != "":
+			var result := DB.apply_option(GameState.current_thread, opt_id)
+			dbg("apply_option('%s') -> empty=%s" % [opt_id, str(result.is_empty())])
+			if not result.is_empty():
+				_add_bubble("Yo", String(result.get("player_text", text)))
+				for line_v in (result.get("npc_reply", []) as Array):
+					_add_bubble(name_lbl.text if name_lbl else "NPC", String(line_v))
+				_refresh_replies()
+				_scroll_to_bottom()
+				return
+		else:
+			dbg("opt_id vacío → paso a fallback")
 
-	# persistir en el caso en memoria:
-	# var chats := DB.current_case["chats"] as Dictionary
-	# var arr := chats.get(GameState.current_thread, []) as Array
-	# arr.append({"from":"Yo","text":text})
-	# chats[GameState.current_thread] = arr
-
-	await get_tree().process_frame
-	var sc := chat_box.get_parent() as ScrollContainer
-	if sc: sc.scroll_vertical = sc.get_v_scroll_bar().max_value
+	# Fallback (modo antiguo solo texto)
+	if text.strip_edges() != "":
+		_add_bubble("Yo", text)
+		_scroll_to_bottom()
 	
 func _fill_replies(contact_id: String, case_data: Dictionary) -> void:
 	if not is_instance_valid(choice_picker):
 		push_error("[CHAT] %ChoicePicker no encontrado"); return
+
+	choice_picker.clear()
+	_opts_cache.clear()
+	
+	# — Reaplica overrides SIEMPRE —
 	choice_picker.add_theme_font_size_override("font_size", 32)
 	var pm := choice_picker.get_popup()
 	pm.add_theme_font_size_override("font_size", 32)
 	pm.add_theme_constant_override("v_separation", 8)
 	pm.add_theme_constant_override("item_start_padding", 16)
 	pm.add_theme_constant_override("item_end_padding", 16)
-	pm.reset_size()  # recalcula con los overrides
+	pm.reset_size()
+	
+	dbg("fill_replies(contact=%s)" % contact_id)
+	dbg("DB.has_method(get_available_options) = %s" % str(DB.has_method("get_available_options")))
 
-	choice_picker.clear()
+	# Si existen helpers nuevos en DB, úsalo (desbloqueos por facts)
+	if "get_available_options" in DB:
+		var opts: Array = DB.get_available_options(contact_id)
+		dbg("available options: %d" % opts.size())
+		for opt_v in opts:
+			var opt := opt_v as Dictionary
+			var text := String(opt.get("text",""))
+			var oid  := String(opt.get("id",""))
+			var idx := choice_picker.item_count
+			choice_picker.add_item(text)
+			choice_picker.set_item_metadata(idx, oid)  # guardamos el id
+			_opts_cache.append(opt)
+			dbg("  + opt[%d]: id=%s text=%s" % [idx, oid, text])
+		if choice_picker.item_count > 0:
+			choice_picker.select(0)
+			dbg("select(0) => %s" % choice_picker.get_item_text(0))
+		return
 
+	# Fallback compatible con tu JSON antiguo: replies[contact_id] = ["...", "..."]
 	var replies: Dictionary = case_data.get("replies", {}) as Dictionary
-	if not replies.has(contact_id):
-		push_error("[CHAT] No hay 'replies' para '%s' en el JSON" % contact_id)
-		return
+	if replies.has(contact_id):
+		var arr: Array = replies[contact_id] as Array
+		dbg("legacy replies count: %d" % arr.size())
+		for v in (replies[contact_id] as Array):
+			choice_picker.add_item(str(v))
+		if choice_picker.item_count > 0:
+			choice_picker.select(0)
+			dbg("select(0) => %s" % choice_picker.get_item_text(0))
+	else:
+		dbg("no replies for contact (legacy) → añado placeholder")
+		choice_picker.add_item("…")
+		choice_picker.select(0)
 
-	var opts: Array = replies[contact_id] as Array
-	if opts.is_empty():
-		push_error("[CHAT] 'replies[%s]' está vacío" % contact_id)
-		return
-
-	for v in opts:
-		choice_picker.add_item(str(v))
-
-	choice_picker.select(0)
-	dbg("replies for %s -> %d (text='%s')" % [contact_id, choice_picker.item_count, choice_picker.text])
 
 func _make_avatar_round() -> void:
 	if not is_instance_valid(avatar): return
@@ -278,3 +367,11 @@ func _show_avatar_preview() -> void:
 	var tween := create_tween()
 	overlay.modulate = Color(1,1,1,0)
 	tween.tween_property(overlay, "modulate:a", 1.0, 0.15).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	
+func _refresh_replies() -> void:
+	_fill_replies(GameState.current_thread, DB.current_case as Dictionary)
+	
+func _scroll_to_bottom() -> void:
+	await get_tree().process_frame
+	var sc := chat_box.get_parent() as ScrollContainer
+	if sc: sc.scroll_vertical = sc.get_v_scroll_bar().max_value

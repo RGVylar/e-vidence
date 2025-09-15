@@ -7,14 +7,21 @@ func _ready() -> void:
 	btn_back.pressed.connect(_on_back_pressed)
 	if typeof(DB.current_case) != TYPE_DICTIONARY or (DB.current_case as Dictionary).is_empty():
 		DB.load_case(GameState.current_case_id)
+	DB.facts_changed.connect(func(_k): list_contacts())
 	list_contacts()
 
 func list_contacts() -> void:
 	for n in list.get_children(): n.queue_free()
 
 	var case_data: Dictionary = DB.current_case as Dictionary
-	var contacts: Array = case_data.get("contacts", []) as Array
 	var chats: Dictionary     = case_data.get("chats", {}) as Dictionary
+	
+	# contactos filtrados por requires
+	var contacts: Array = []
+	if DB.has_method("get_visible_contacts"):
+		contacts = DB.get_visible_contacts()
+	else:
+		contacts = case_data.get("contacts", []) as Array
 	print("contacts => ", contacts)
 
 	for c_v in contacts:
@@ -26,12 +33,22 @@ func list_contacts() -> void:
 		# último mensaje como preview
 		var preview := ""
 		if chats.has(id):
-			var arr: Array = chats[id] as Array
+			var entry: Variant = chats.get(id)
+
+			var arr: Array = []
+			if typeof(entry) == TYPE_ARRAY:
+				arr = entry as Array
+			elif typeof(entry) == TYPE_DICTIONARY:
+				arr = (entry as Dictionary).get("history", []) as Array
+
 			if arr.size() > 0:
 				var last: Dictionary = arr.back() as Dictionary
-				var sender: String = last.get("from", "") as String
-				var txt: String     = last.get("text", "") as String
-				preview = ("Tú: " if sender == "Yo" else "") + txt
+				var sender: String = String(last.get("from",""))
+				var txt: String    = String(last.get("text",""))
+				if sender == "Yo":
+					preview = "Tú: " + txt
+				else:
+					preview = txt
 
 
 		var item := _make_contact_item(id, name, avatar_path, preview)
@@ -87,7 +104,7 @@ func _make_contact_item(contact_id: String, name: String, avatar_path: String, p
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE  
 	btn.add_child(row)
 
-	# Avatar redondo (44x44)
+	# Avatar redondo (190x190)
 	var avatar_wrap := Control.new()
 	avatar_wrap.custom_minimum_size = Vector2(190, 190)
 	avatar_wrap.size_flags_vertical = Control.SIZE_SHRINK_CENTER

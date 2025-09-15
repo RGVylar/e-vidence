@@ -1,0 +1,199 @@
+{
+  "contacts": [
+    { "id": "c3", "name": "Silva",  "avatar": "res://assets/avatars/silva.jpg" },
+    { "id": "a1", "name": "Pilar",  "avatar": "res://assets/avatars/pilar.jpg",  "requires": ["contact_a1_unlocked"] },
+    { "id": "b2", "name": "David",  "avatar": "res://assets/avatars/david.jpg",  "requires": ["contact_b2_unlocked"] },
+    { "id": "d4", "name": "Neo",    "avatar": "res://assets/avatars/neo.jpeg",   "requires": ["contact_d4_unlocked"] }
+  ],
+
+  "facts": {},
+
+  "chats": {
+    "c3": {
+      "history": [
+        { "from": "Silva", "text": "Tengo un encargo para ti: alguien saboteó un evento benéfico con material falso. ¿Te apuntas a investigar?" }
+      ],
+      "options": [
+        {
+          "id": "accept_case",
+          "text": "Acepto. ¿Qué tienes para empezar?",
+          "requires": [],
+          "npc_reply": [
+            "Empieza por este flyer. El estilo me huele raro.",
+            "También te paso un contacto clave si lo necesitas."
+          ],
+          "effects": ["unlock_gallery:prueba", "give_evidence:flyer_villano"]
+        },
+        {
+          "id": "ask_contact_pilar",
+          "text": "Pásame el contacto de la CM del evento.",
+          "requires": [],
+          "npc_reply": ["Te presento a Pilar. Ella reconoce estilos y firmas."],
+          "effects": ["contact_a1_unlocked"]
+        },
+        {
+          "id": "ask_more_material",
+          "text": "¿Tienes algo más técnico?",
+          "requires": [],
+          "npc_reply": ["Sí, una captura del perfil que difundió el flyer. Encuentra el código oculto."],
+          "effects": ["unlock_gallery:captura", "give_evidence:snapshot_captura"]
+        },
+        {
+          "id": "status",
+          "text": "Resumen rápido del caso.",
+          "requires": [],
+          "npc_reply": [
+            "Busca la firma del flyer, consigue el código de la captura y llévaselo a David.",
+            "Si cierras el círculo, aparecerá el sospechoso."
+          ],
+          "repeatable": true
+        }
+      ]
+    },
+
+    "a1": {
+      "history": [
+        { "from": "Pilar", "text": "Silva me avisó. Mándame lo que tengas y te digo si es fake." }
+      ],
+      "options": [
+        {
+          "id": "pilar_hint",
+          "text": "¿Alguna pista sobre los flyers falsos?",
+          "requires": [],
+          "npc_reply": [ "Si ves una firma tipo 'MUTLEY' escondida, es del mismo troll de siempre." ],
+          "effects": [],
+          "max_uses": 2
+        },
+        {
+          "id": "pilar_status",
+          "text": "Te mantengo al tanto. (ping)",
+          "requires": [],
+          "npc_reply": [ "OK, cuando identifiques la firma te abro otra pista." ],
+          "repeatable": true
+        }
+      ]
+    },
+
+    "b2": {
+      "history": [
+        { "from": "David", "text": "Me suena el troll, pero necesito un código de la captura para rastrear la cuenta." }
+      ],
+      "options": [
+        {
+          "id": "ask_what_code",
+          "text": "¿Qué código exactamente?",
+          "requires": [],
+          "npc_reply": [ "Un 'código PÚRPURA' oculto en los metadatos o sobreimpreso. Tráemelo y te paso algo jugoso." ],
+          "effects": [],
+          "max_uses": 2
+        },
+        {
+          "id": "deliver_code",
+          "text": "Tengo el código púrpura.",
+          "requires": ["code_purple"],
+          "npc_reply": [
+            "¡Perfecto! Con esto desenmascaro a la cuenta.",
+            "Toma: selfie del sospechoso. Es cuestión de minutos que aparezca."
+          ],
+          "effects": ["unlock_gallery:secret", "give_evidence:secret_photo", "contact_d4_unlocked"]
+        },
+        {
+          "id": "david_status",
+          "text": "¿Cómo vas con el rastreo?",
+          "requires": [],
+          "npc_reply": [ "Sin el código, poco. Con él, te saco nombre y cara." ],
+          "repeatable": true
+        }
+      ]
+    },
+
+    "d4": {
+      "history": [
+        { "from": "Neo", "text": "¿Tú quién eres y por qué me escribes?" }
+      ],
+      "options": [
+        {
+          "id": "neo_smalltalk",
+          "text": "Solo quiero aclarar lo del evento.",
+          "requires": [],
+          "npc_reply": [ "No tengo nada que ver… (eso dices)" ],
+          "effects": [],
+          "max_uses": 1
+        },
+        {
+          "id": "close_case",
+          "text": "He reunido todas las pruebas. (Cerrar caso)",
+          "requires": ["case_ready_to_close"],
+          "npc_reply": [
+            "Vale… era una broma pesada que se fue de las manos. Lo retiro y pido disculpas.",
+            "Silva tendrá su comunicado. Fin del asunto."
+          ],
+          "effects": ["case_solved"]
+        }
+      ]
+    }
+  },
+
+  "gallery": [
+    { "id": "prueba",  "path": "res://assets/case/tutorial/prueba.jpg",  "requires": ["unlocked_prueba"] },
+    { "id": "captura", "path": "res://assets/case/tutorial/captura.jpg", "requires": ["unlocked_captura"] },
+    { "id": "secret",  "path": "res://assets/case/tutorial/secret.jpeg", "requires": ["unlocked_secret"] }
+  ],
+
+  "evidence": [
+    {
+      "id": "flyer_villano",
+      "name": "Flyer del troll",
+      "desc": "Flyer del evento con un villano caricaturesco.",
+      "reactions": {
+        "a1": {
+          "text": "Pilar, mira el flyer.",
+          "npc_reply": [
+            "Ajá… firma 'MUTLEY' en el borde. Es fake.",
+            "Habla con David; él ha seguido a ese troll."
+          ],
+          "effects": ["found_tag_mutley", "contact_b2_unlocked"]
+        }
+      }
+    },
+    {
+      "id": "snapshot_captura",
+      "name": "Captura del perfil",
+      "desc": "Captura del perfil que difundió el flyer.",
+      "reactions": {
+        "c3": {
+          "text": "Silva, revisa esta captura.",
+          "npc_reply": [
+            "Veo un patrón púrpura en la sobreexposición.",
+            "Código extraído: P-7PURPLE."
+          ],
+          "effects": ["code_purple"]
+        },
+        "b2": {
+          "requires": ["code_purple"],
+          "text": "Te paso la captura con el código.",
+          "npc_reply": [
+            "Suficiente. Con esto identifico la cuenta.",
+            "Prepara el cierre."
+          ],
+          "effects": ["unlock_gallery:secret", "give_evidence:secret_photo", "contact_d4_unlocked"]
+        }
+      }
+    },
+    {
+      "id": "secret_photo",
+      "name": "Selfie del sospechoso",
+      "desc": "Foto con iluminación púrpura del sospechoso.",
+      "reactions": {
+        "d4": {
+          "text": "Neo, esta foto es de tu perfil alterno.",
+          "npc_reply": [
+            "…Ok, me pillaste.",
+            "Fue un troleo; no pensé que tuviera impacto."
+          ],
+          "effects": ["case_ready_to_close"]
+        }
+      }
+    }
+  ]
+}
