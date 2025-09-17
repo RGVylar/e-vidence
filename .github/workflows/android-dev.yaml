@@ -1,0 +1,55 @@
+name: Export Android APK
+
+permissions:
+  contents: write
+
+on:
+  push
+
+jobs:
+  export-android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Export APK
+        uses: firebelley/godot-export@v7.0.0
+        with:
+          godot_executable_download_url: https://github.com/godotengine/godot/releases/download/4.4.1-stable/Godot_v4.4.1-stable_linux.x86_64.zip
+          godot_export_templates_download_url: https://github.com/godotengine/godot/releases/download/4.4.1-stable/Godot_v4.4.1-stable_export_templates.tpz
+
+          relative_project_path: "project"
+          export_debug: true
+          presets_to_export: |
+            Android
+          relative_export_path: "project/build"
+          cache: true
+
+      - name: Read app version from Godot project
+        run: |
+          VER=$(awk '
+            $0 ~ /^\[application\]/ {in_app=1; next}
+            $0 ~ /^\[/ {in_app=0}
+            in_app && $0 ~ /^config\/version=/ {
+              gsub(/.*="/,""); gsub(/"$/,""); print; exit
+            }' project/project.godot)
+          [ -z "$VER" ] && VER="0.0.0"
+          echo "APP_VERSION=$VER" >> "$GITHUB_ENV"
+
+      - name: Extract branch name
+        shell: bash
+        run: echo "branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}" >> $GITHUB_OUTPUT
+        id: extract_branch
+
+      - name: Rename APK with version
+        run: |
+          mv project/build/Android/evidence.apk \
+            project/build/Android/evidence-v${{ env.APP_VERSION }}-${{ steps.extract_branch.outputs.branch }}.apk
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apk
+          path: project/build/**/*.apk
+          retention-days: 7
+
