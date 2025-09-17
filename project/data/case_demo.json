@@ -120,7 +120,7 @@
   ],
 
   "gallery": [
-    "res://assets/case/demo/demo_photo1.png",
+    "res://assets/case/gatos/cats/move_notice.png",
     { "id": "foto_evento",   "path": "res://assets/case/gatos/cats/auri.jpg", "requires": ["unlocked_foto_evento"] },
     { "id": "nota_borrador", "path": "res://assets/case/gatos/cats/cosmo.jpg",  "requires": ["unlocked_nota_borrador"] }
   ]
