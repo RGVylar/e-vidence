@@ -1,4 +1,4 @@
-name: Export Android APK
+name: Export Branch Android APK
 
 permissions:
   contents: write
