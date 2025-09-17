@@ -44,10 +44,11 @@ jobs:
         run: echo "branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}" >> $GITHUB_OUTPUT
         id: extract_branch
 
-      - name: Rename APK with version
+      - name: Rename APK with version & branch
         run: |
-          mv project/build/Android/evidence.apk \
-            project/build/Android/evidence-v${{ env.APP_VERSION }}-${{ steps.extract_branch.outputs.branch }}.apk
+            BRANCH_NAME=$(echo "${{ steps.extract_branch.outputs.branch }}" | sed 's/\//-/g')
+            mv project/build/Android/evidence.apk \
+              "project/build/Android/evidence-v${{ env.APP_VERSION }}-$BRANCH_NAME.apk"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
