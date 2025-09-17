@@ -1,127 +1,174 @@
 {
   "contacts": [
-    {
-      "id": "npc1",
-      "name": "DemoNPC",
-      "avatar": "res://assets/avatars/silva.jpg",
-      "timing": {
-        "npc_reaction_delay": 0.8,
-        "npc_typing_min": 0.2,
-        "npc_typing_max": 0.6,
-        "npc_between_msgs": 0.4,
-        "typing_per_char": 0.015
-      }
-    },
-    {
-      "id": "npc2",
-      "name": "Pilar (CM)",
-      "avatar": "res://assets/avatars/pilar.jpg",
-      "requires": ["contact_npc2_unlocked"],
-      "timing": {
-        "npc_reaction_delay": 0.4,
-        "npc_typing_min": 0.15,
-        "npc_typing_max": 0.5,
-        "npc_between_msgs": 0.25,
-        "typing_per_char": 0.012
-      }
-    }
+	{
+	  "id": "npc1",
+	  "name": "DemoNPC",
+	  "avatar": "res://assets/avatars/silva.jpg",
+	  "timing": {
+		"npc_reaction_delay": 0.8,
+		"npc_typing_min": 0.2,
+		"npc_typing_max": 0.6,
+		"npc_between_msgs": 0.4,
+		"typing_per_char": 0.015
+	  }
+	},
+	{
+	  "id": "npc2",
+	  "name": "Pilar (CM)",
+	  "avatar": "res://assets/avatars/pilar.jpg",
+	  "requires": ["contact_npc2_unlocked"],
+	  "timing": {
+		"npc_reaction_delay": 0.4,
+		"npc_typing_min": 0.15,
+		"npc_typing_max": 0.5,
+		"npc_between_msgs": 0.25,
+		"typing_per_char": 0.012
+	  }
+	}
   ],
 
   "chats": {
-    "npc1": {
-      "history": [
-        { "from": "DemoNPC", "text": "👋 Hola, soy el contacto definido en 'contacts'." },
-        { "from": "Yo",      "text": "Este histórico viene de 'chats[npc1].history'." },
-        { "from": "DemoNPC", "text": "Aquí probaremos options, pruebas, galería y desbloqueos." }
-      ],
-      "options": [
-        {
-          "id": "accept_case",
-          "text": "Probar 'options' (y obtener una prueba)",
-          "effects": ["give_evidence:flyer_demo"],
-          "npc_reply": [
-            "Perfecto, acabas de usar 'options'.",
+	"npc1": {
+	  "history": [
+		{ "from": "DemoNPC", "text": "👋 Hola, soy el contacto definido en 'contacts'." },
+		{ "from": "Yo",      "text": "Este histórico viene de 'chats[npc1].history'." },
+		{ "from": "DemoNPC", "text": "Aquí probaremos options, pruebas, galería, desbloqueos y *repetibles*." }
+	  ],
+	  "options": [
+		{
+		  "id": "accept_case",
+		  "text": "Probar 'options' (y obtener una prueba)",
+		  "effects": ["give_evidence:flyer_demo"],
+		  "npc_reply": [
+			"Perfecto, acabas de usar 'options'.",
             "Te he dado una prueba llamada 'flyer_demo'. Prueba el botón + para presentarla."
-          ]
-        },
-        {
-          "id": "unlock_gallery_item",
-          "text": "Desbloquear una foto de la galería",
-          "effects": ["unlock_gallery:foto_evento"],
-          "npc_reply": [
+		  ]
+		},
+		{
+		  "id": "unlock_gallery_item",
+		  "text": "Desbloquear una foto de la galería",
+		  "effects": ["unlock_gallery:foto_evento"],
+		  "npc_reply": [
             "Acabo de desbloquear 'foto_evento' en tu galería. Ve a la galería para verla."
-          ]
-        },
-        {
-          "id": "add_new_contact",
-          "text": "Añadir a Pilar (nuevo contacto)",
-          "effects": ["unlock_contact:npc2"],
-          "npc_reply": [
+		  ]
+		},
+		{
+		  "id": "add_new_contact",
+		  "text": "Añadir a Pilar (nuevo contacto)",
+		  "effects": ["unlock_contact:npc2"],
+		  "npc_reply": [
             "Listo. He añadido a Pilar al caso. Ya puedes escribirle (aparece como nuevo contacto)."
-          ]
-        },
-        {
-          "id": "status",
-          "text": "¿Qué más se puede mostrar?",
-          "npc_reply": [
-            "También existe el modo 'replies' legacy si no defines options.",
-            "Las pruebas dependen de si las posees (inventario).",
-            "Los tiempos de respuesta pueden personalizarse por persona con 'contacts[*].timing'."
-          ]
-        }
-      ]
-    },
+		  ]
+		},
 
-    "npc2": {
-      "history": [
-        { "from": "Pilar (CM)", "text": "¡Hola! Aparezco porque me han desbloqueado con 'unlock_contact:npc2'." }
-      ],
-      "options": [
-        {
-          "id": "ask_cm_asset",
-          "text": "¿Tienes una imagen para la nota?",
-          "effects": ["unlock_gallery:nota_borrador"],
-          "npc_reply": [
+
+		{
+		  "id": "ask_time",
+		  "text": "¿Qué hora es? (repetible ∞)",
+		  "repeatable": true,
+		  "npc_reply": [
+            "Son las HH:MM (demo). Esta opción es *repetible infinita*."
+		  ]
+		},
+		{
+		  "id": "ask_hint_limited",
+		  "text": "Dame una pista (máx 2)",
+		  "max_uses": 2,
+		  "npc_reply": [
+            "Pista: las opciones pueden ser limitadas con 'max_uses'. Te quedan menos usos."
+		  ]
+		},
+		{
+		  "id": "status_first",
+		  "text": "Resumen del caso (primera vez)",
+		  "requires": ["!asked_status_once"],
+		  "effects": ["asked_status_once"],
+		  "npc_reply": [
+            "Resumen inicial: este es tu primer resumen. A partir de ahora verás otra respuesta."
+		  ]
+		},
+		{
+		  "id": "status_repeat",
+		  "text": "Resumen del caso (repetible tras la 1ª vez)",
+		  "requires": ["asked_status_once"],
+		  "repeatable": true,
+		  "npc_reply": [
+            "Resumen corto (repetible): esto demuestra cambio de comportamiento tras la 1ª vez."
+		  ]
+		},
+
+
+		{
+		  "id": "status",
+		  "text": "¿Qué más se puede mostrar?",
+		  "npc_reply": [
+			"También existe el modo 'replies' legacy si no defines options.",
+			"Las pruebas dependen de si las posees (inventario).",
+			"Los tiempos de respuesta pueden personalizarse por persona con 'contacts[*].timing'.",
+            "Y como has visto, hay opciones *repetibles* y con *límite de usos*."
+		  ]
+		}
+	  ]
+	},
+
+	"npc2": {
+	  "history": [
+		{ "from": "Pilar (CM)", "text": "¡Hola! Aparezco porque me han desbloqueado con 'unlock_contact:npc2'." }
+	  ],
+	  "options": [
+		{
+		  "id": "ask_cm_asset",
+		  "text": "¿Tienes una imagen para la nota?",
+		  "effects": ["unlock_gallery:nota_borrador"],
+		  "npc_reply": [
             "Te paso un borrador a la galería ('nota_borrador'). Échale un ojo."
-          ]
-        }
-      ]
-    }
+		  ]
+		},
+		{
+		  "id": "cm_quick_check",
+		  "text": "¿Sigue bien el plan? (repetible ∞)",
+		  "repeatable": true,
+		  "npc_reply": [
+            "Sí, el plan sigue OK. Esta es otra opción *repetible infinita*."
+		  ]
+		}
+	  ]
+	}
   },
 
   "replies": {
-    "npc1": [
-      "Opción legacy desde 'replies'",
+	"npc1": [
+	  "Opción legacy desde 'replies'",
       "Otra opción sin lógica avanzada"
-    ]
+	]
   },
 
   "evidence": [
-    {
-      "id": "flyer_demo",
-      "name": "Flyer de ejemplo",
-      "reactions": {
-        "npc1": {
-          "text": "Te presento una prueba.",
-          "npc_reply": [
-            "Genial, esa prueba proviene de 'evidence'.",
+	{
+	  "id": "flyer_demo",
+	  "name": "Flyer de ejemplo",
+	  "reactions": {
+		"npc1": {
+		  "text": "Te presento una prueba.",
+		  "npc_reply": [
+			"Genial, esa prueba proviene de 'evidence'.",
             "Gracias. De paso te desbloqueo una foto extra."
-          ],
-          "effects": ["unlock_gallery:foto_evento"]
-        },
-        "npc2": {
-          "text": "Te presento la misma prueba (para Pilar).",
-          "npc_reply": [
+		  ],
+		  "effects": ["unlock_gallery:foto_evento"]
+		},
+		"npc2": {
+		  "text": "Te presento la misma prueba (para Pilar).",
+		  "npc_reply": [
             "¡Perfecto! Esto nos sirve para la comunicación."
-          ]
-        }
-      }
-    }
+		  ]
+		}
+	  }
+	}
   ],
 
   "gallery": [
-    "res://assets/case/gatos/cats/move_notice.png",
-    { "id": "foto_evento",   "path": "res://assets/case/gatos/cats/auri.jpg", "requires": ["unlocked_foto_evento"] },
-    { "id": "nota_borrador", "path": "res://assets/case/gatos/cats/cosmo.jpg",  "requires": ["unlocked_nota_borrador"] }
+	"res://assets/case/gatos/cats/move_notice.png",
+	{ "id": "foto_evento",   "path": "res://assets/case/gatos/cats/auri.jpg",  "requires": ["unlocked_foto_evento"] },
+	{ "id": "nota_borrador", "path": "res://assets/case/gatos/cats/cosmo.jpg", "requires": ["unlocked_nota_borrador"] }
   ]
 }
