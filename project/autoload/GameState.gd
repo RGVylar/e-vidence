@@ -4,7 +4,8 @@ var vars: Dictionary = {}
 var inventory: Dictionary = {}           # evidencias por id
 # var current_case_id := "case_tutorial"
 # var current_case_id := "case_improved_dialogues"
-var current_case_id := "case_final_test"
+#var current_case_id := "case_final_test"
+var current_case_id := "case_demo"
 var current_thread: String = ""   # id del contacto/hilo seleccionado
 
 signal evidence_added(id)

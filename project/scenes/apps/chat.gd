@@ -16,11 +16,12 @@ extends Control
 @onready var choice_picker: OptionButton = get_node_or_null("%ChoicePicker") as OptionButton
 @onready var _sfx_player: AudioStreamPlayer = %AudioStreamPlayer
 
-@export_range(0.0, 5.0, 0.05) var message_interval: float = 0.35 # SOLO para histórico
-@export_range(0.0, 3.0, 0.05) var npc_typing_min: float = 0.30   # tecleo mínimo por mensaje
-@export_range(0.0, 6.0, 0.05) var npc_typing_max: float = 1.25   # tecleo máximo por mensaje
-@export_range(0.0, 3.0, 0.05) var npc_between_msgs: float = 0.30 # pausa entre mensajes del NPC
 @export_range(0.0, 3.0, 0.05) var npc_reaction_delay: float = 0.50
+@export_range(0.0, 3.0, 0.05) var npc_typing_min: float = 0.30
+@export_range(0.0, 6.0, 0.05) var npc_typing_max: float = 1.25
+@export_range(0.0, 3.0, 0.05) var npc_between_msgs: float = 0.30
+@export_range(0.0, 0.20, 0.005) var typing_per_char: float = 0.02  # s por carácter (0.02 = 20 ms)
+@export_range(0.0, 5.0, 0.05) var message_interval: float = 0.2
 
 var _npc_reply_running := false
 var _typing_row: HBoxContainer = null
@@ -200,12 +201,22 @@ func _on_add_pressed() -> void:
 			if not res.is_empty():
 				_add_bubble("Yo", String(res.get("player_text","Presento prueba.")))
 				
-				if npc_reaction_delay > 0.0:
-					await get_tree().create_timer(npc_reaction_delay).timeout
+				var T: Dictionary = DB.get_contact_timing(contact_id)
+				var reaction := DB.dict_get_number(T, "npc_reaction_delay", npc_reaction_delay)
+				var typ_min  := DB.dict_get_number(T, "npc_typing_min",    npc_typing_min)
+				var typ_max  := DB.dict_get_number(T, "npc_typing_max",    npc_typing_max)
+				var between  := DB.dict_get_number(T, "npc_between_msgs",  npc_between_msgs)
+				var tpc      := DB.dict_get_number(T, "typing_per_char",   typing_per_char)
 
+				# 1) pequeña pausa antes de que el NPC reaccione
+				if reaction > 0.0:
+					await get_tree().create_timer(reaction).timeout
+
+				# 2) secuenciar las líneas del NPC
 				await _play_npc_reply_sequence(
 					res.get("npc_reply", []) as Array,
-					name_lbl.text if name_lbl else "NPC"
+					(name_lbl.text if name_lbl else "NPC"),
+					typ_min, typ_max, tpc, between
 				)
 
 				_refresh_replies()   # por si desbloquea opciones
@@ -249,14 +260,24 @@ func _on_send_pressed() -> void:
 			if not result.is_empty():
 				_add_bubble("Yo", String(result.get("player_text", text)))
 
-				
-				# Espera antes de que el NPC haga algo
-				if npc_reaction_delay > 0.0:
-					await get_tree().create_timer(npc_reaction_delay).timeout
+				var contact_id := GameState.current_thread
+				var T: Dictionary = DB.get_contact_timing(contact_id)
 
+				var reaction := DB.dict_get_number(T, "npc_reaction_delay", npc_reaction_delay)
+				var typ_min  := DB.dict_get_number(T, "npc_typing_min",    npc_typing_min)
+				var typ_max  := DB.dict_get_number(T, "npc_typing_max",    npc_typing_max)
+				var between  := DB.dict_get_number(T, "npc_between_msgs",  npc_between_msgs)
+				var tpc      := DB.dict_get_number(T, "typing_per_char",   typing_per_char)
+
+				# 1) pequeña pausa antes de que el NPC reaccione
+				if reaction > 0.0:
+					await get_tree().create_timer(reaction).timeout
+
+				# 2) secuenciar las líneas del NPC
 				await _play_npc_reply_sequence(
 					result.get("npc_reply", []) as Array,
-					name_lbl.text if name_lbl else "NPC"
+					(name_lbl.text if name_lbl else "NPC"),
+					typ_min, typ_max, tpc, between
 				)
 
 				_refresh_replies()
@@ -403,12 +424,10 @@ func _refresh_replies() -> void:
 	
 func _scroll_to_bottom() -> void:
 	await get_tree().process_frame
-	var sc := chat_box.get_parent() as ScrollContainer
+	var sc := chat_box.get_parent() as ScrollContainer 
 	if sc: sc.scroll_vertical = sc.get_v_scroll_bar().max_value
 	
 func _render_history_sequential(history: Array) -> void:
-	print("[CHAT] message_interval =", message_interval)
-
 	var t := Timer.new()
 	t.one_shot = true
 	add_child(t)
@@ -457,7 +476,7 @@ func _typing_start(sender_name: String) -> void:
 	bubble.add_theme_stylebox_override("panel", sb)
 
 	var lbl := Label.new()
-	lbl.text = "···" % sender_name
+	lbl.text = "···"
 	lbl.add_theme_font_size_override("font_size", 28)
 	bubble.add_child(lbl)
 
@@ -476,27 +495,48 @@ func _npc_typing_duration_for(text: String) -> float:
 	return clamp(base, npc_typing_min, npc_typing_max)
 
 # Secuencia de respuestas del NPC (con "escribiendo..." + pausas)
-func _play_npc_reply_sequence(lines: Array, npc_name: String) -> void:
+func _play_npc_reply_sequence(
+	lines: Array,
+	npc_name: String,
+	typ_min: float, typ_max: float,
+	tpc: float,                         # typing_per_char (seg/char)
+	between_default: float
+) -> void:
 	if _npc_reply_running:
-		# opcional: podrías encolar; por simplicidad, esperamos a que acabe
 		while _npc_reply_running:
 			await get_tree().process_frame
-
 	_npc_reply_running = true
 
 	for line_v in lines:
-		var line := String(line_v)
+		var text := ""
+		var local_min := typ_min
+		var local_max := typ_max
+		var local_between := between_default
 
+		# Línea puede ser string o dict con overrides
+		if typeof(line_v) == TYPE_DICTIONARY:
+			var ld := line_v as Dictionary
+			text = String(ld.get("text",""))
+			if ld.has("typing_min"):  local_min     = float(ld["typing_min"])
+			if ld.has("typing_max"):  local_max     = float(ld["typing_max"])
+			if ld.has("between"):     local_between = float(ld["between"])
+			if ld.has("after_delay"): local_between = float(ld["after_delay"]) # alias
+			if ld.has("reaction_delay"):
+				await get_tree().create_timer(float(ld["reaction_delay"])).timeout
+		else:
+			text = String(line_v)
+
+		# “<NPC> está escribiendo…”
 		_typing_start(npc_name)
-		var t := _npc_typing_duration_for(line)
-		if t > 0.0:
-			await get_tree().create_timer(t).timeout
+		var dur: float = clamp(tpc * float(text.length()), local_min, local_max)
+		if dur > 0.0:
+			await get_tree().create_timer(dur).timeout
 		_typing_end()
 
-		_add_bubble(npc_name, line)
+		_add_bubble(npc_name, text)
 		_scroll_to_bottom()
 
-		if npc_between_msgs > 0.0:
-			await get_tree().create_timer(npc_between_msgs).timeout
+		if local_between > 0.0:
+			await get_tree().create_timer(local_between).timeout
 
 	_npc_reply_running = false

@@ -73,7 +73,17 @@ func get_available_options(contact_id: String) -> Array:
 	if typeof(current_case) != TYPE_DICTIONARY:
 		return []
 	var chats := (current_case as Dictionary).get("chats", {}) as Dictionary
-	var chat := chats.get(contact_id, {}) as Dictionary
+	var entry: Variant = chats.get(contact_id)
+
+	# Soporta formato legacy (Array) y nuevo (Dictionary)
+	var chat: Dictionary
+	if typeof(entry) == TYPE_DICTIONARY:
+		chat = entry as Dictionary
+	elif typeof(entry) == TYPE_ARRAY:
+		chat = {"history": entry}  # envolvemos para tener una dict consistente
+	else:
+		chat = {}
+
 	var options: Array = chat.get("options", []) as Array
 	var out: Array = []
 	for opt_v in options:
@@ -195,7 +205,17 @@ func get_presentable_evidence(contact_id: String) -> Array:
 	if typeof(current_case) != TYPE_DICTIONARY:
 		return []
 	var chats := (current_case as Dictionary).get("chats", {}) as Dictionary
-	var chat := chats.get(contact_id, {}) as Dictionary
+	var entry: Variant = chats.get(contact_id)
+
+	# Soporta legacy (Array) y nuevo (Dictionary)
+	var chat: Dictionary
+	if typeof(entry) == TYPE_DICTIONARY:
+		chat = entry as Dictionary
+	elif typeof(entry) == TYPE_ARRAY:
+		chat = {"history": entry}
+	else:
+		chat = {}
+
 	var used: Array = chat.get("used_evidence", []) as Array
 
 	var owned := _owned_evidence_ids()
@@ -348,26 +368,21 @@ func get_visible_contacts() -> Array:
 			out.append(c)
 	return out
 
-func _case_timing_defaults() -> Dictionary:
-	var case_data := DB.current_case as Dictionary
-	return case_data.get("timing", {}) as Dictionary
 
-func _contact_timing(contact_id: String) -> Dictionary:
-	var case_data := DB.current_case as Dictionary
-	for c_v in (case_data.get("contacts", []) as Array):
-		var c := c_v as Dictionary
+func get_contact_timing(contact_id: String) -> Dictionary:
+	var contacts_v: Variant = current_case.get("contacts")
+	if typeof(contacts_v) != TYPE_ARRAY: 
+		return {}
+	for c_v in (contacts_v as Array):
+		var c: Dictionary = c_v as Dictionary
 		if String(c.get("id","")) == contact_id:
-			return c.get("timing", {}) as Dictionary
+			var t_v: Variant = c.get("timing")
+			return (t_v as Dictionary) if typeof(t_v) == TYPE_DICTIONARY else {}
 	return {}
 
-func _timing_number(src: Dictionary, key: String, fallback: float) -> float:
-	return float(src.get(key, fallback))
-
-func _resolve_timing_for_contact(contact_id: String) -> Dictionary:
-	var d := _case_timing_defaults()
-	var c := _contact_timing(contact_id)
-	# merge simple: lo definido en contacto pisa a global
-	var out := {}  # Dictionary
-	for k in d.keys(): out[k] = d[k]
-	for k in c.keys(): out[k] = c[k]
-	return out
+func dict_get_number(d: Dictionary, key: String, fallback: float) -> float:
+	if d.has(key):
+		var v: Variant = d[key]
+		if typeof(v) in [TYPE_INT, TYPE_FLOAT, TYPE_STRING]:
+			return float(v)
+	return fallback
