@@ -4,7 +4,9 @@ permissions:
   contents: write
 
 on:
-  push
+  push:
+    branches-ignore:
+      - 'main'
 
 jobs:
   export-android:
