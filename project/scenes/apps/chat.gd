@@ -14,7 +14,16 @@ extends Control
 @onready var add_btn: Button            = get_node_or_null("%BtnAdd")       as Button
 @onready var send_btn: Button           = get_node_or_null("%BtnSend")      as Button
 @onready var choice_picker: OptionButton = get_node_or_null("%ChoicePicker") as OptionButton
+@onready var _sfx_player: AudioStreamPlayer = %AudioStreamPlayer
 
+@export_range(0.0, 5.0, 0.05) var message_interval: float = 0.35 # SOLO para histórico
+@export_range(0.0, 3.0, 0.05) var npc_typing_min: float = 0.30   # tecleo mínimo por mensaje
+@export_range(0.0, 6.0, 0.05) var npc_typing_max: float = 1.25   # tecleo máximo por mensaje
+@export_range(0.0, 3.0, 0.05) var npc_between_msgs: float = 0.30 # pausa entre mensajes del NPC
+@export_range(0.0, 3.0, 0.05) var npc_reaction_delay: float = 0.50
+
+var _npc_reply_running := false
+var _typing_row: HBoxContainer = null
 var _opts_cache: Array = []
 
 const PATH_MESSAGING := "res://scenes/apps/Messaging.tscn"
@@ -30,6 +39,10 @@ func _ready() -> void:
 	if btn_back:     btn_back.pressed.connect(_on_back_pressed)
 	if add_btn:      add_btn.pressed.connect(_on_add_pressed)
 	if send_btn:     send_btn.pressed.connect(_on_send_pressed)
+	
+	if _sfx_player == null:
+		_sfx_player = AudioStreamPlayer.new()
+		add_child(_sfx_player)
 
 	var case_data: Dictionary = DB.current_case as Dictionary
 	var contact_id := GameState.current_thread
@@ -90,10 +103,8 @@ func _ready() -> void:
 		history = (entry as Dictionary).get("history", []) as Array
 
 	for n in chat_box.get_children(): n.queue_free()
-	for m_v in history:
-		var m: Dictionary = m_v as Dictionary
-		_add_bubble(String(m.get("from","")), String(m.get("text","")))
-	# dbg("rendered msgs: %d" % i)
+	
+	call_deferred("_start_history_render", history)
 	
 	chat_box.add_theme_constant_override("separation", 12)
 
@@ -148,6 +159,9 @@ func _add_bubble(sender: String, text: String) -> void:
 	bubble.add_child(lbl)
 	row.add_child(bubble)
 	chat_box.add_child(row)
+	
+	# --- sonido al aparecer ---
+	_play_message_sfx()
 
 # ---------- Bottom bar actions ----------
 
@@ -185,8 +199,15 @@ func _on_add_pressed() -> void:
 			var res := DB.apply_evidence(contact_id, evid_id)
 			if not res.is_empty():
 				_add_bubble("Yo", String(res.get("player_text","Presento prueba.")))
-				for line_v in (res.get("npc_reply", []) as Array):
-					_add_bubble(name_lbl.text if name_lbl else "NPC", String(line_v))
+				
+				if npc_reaction_delay > 0.0:
+					await get_tree().create_timer(npc_reaction_delay).timeout
+
+				await _play_npc_reply_sequence(
+					res.get("npc_reply", []) as Array,
+					name_lbl.text if name_lbl else "NPC"
+				)
+
 				_refresh_replies()   # por si desbloquea opciones
 				_scroll_to_bottom()
 		pm.queue_free()
@@ -227,8 +248,17 @@ func _on_send_pressed() -> void:
 			dbg("apply_option('%s') -> empty=%s" % [opt_id, str(result.is_empty())])
 			if not result.is_empty():
 				_add_bubble("Yo", String(result.get("player_text", text)))
-				for line_v in (result.get("npc_reply", []) as Array):
-					_add_bubble(name_lbl.text if name_lbl else "NPC", String(line_v))
+
+				
+				# Espera antes de que el NPC haga algo
+				if npc_reaction_delay > 0.0:
+					await get_tree().create_timer(npc_reaction_delay).timeout
+
+				await _play_npc_reply_sequence(
+					result.get("npc_reply", []) as Array,
+					name_lbl.text if name_lbl else "NPC"
+				)
+
 				_refresh_replies()
 				_scroll_to_bottom()
 				return
@@ -375,3 +405,98 @@ func _scroll_to_bottom() -> void:
 	await get_tree().process_frame
 	var sc := chat_box.get_parent() as ScrollContainer
 	if sc: sc.scroll_vertical = sc.get_v_scroll_bar().max_value
+	
+func _render_history_sequential(history: Array) -> void:
+	print("[CHAT] message_interval =", message_interval)
+
+	var t := Timer.new()
+	t.one_shot = true
+	add_child(t)
+
+	for m_v in history:
+		var m: Dictionary = m_v as Dictionary
+		_add_bubble(String(m.get("from","")), String(m.get("text","")))
+		await get_tree().create_timer(0.01).timeout
+
+		# 🔸 cede un frame para que pinte esta burbuja
+		await get_tree().process_frame
+
+		_scroll_to_bottom()
+
+		# 🔸 pausa entre mensajes
+		if message_interval > 0.0:
+			t.start(message_interval)
+			await t.timeout
+
+func _play_message_sfx() -> void:
+	if not is_instance_valid(_sfx_player) or _sfx_player.stream == null:
+		return
+	_sfx_player.play()
+
+func _start_history_render(history: Array) -> void:
+	await get_tree().process_frame  # cede 1 frame una vez
+	await _render_history_sequential(history)
+
+func _typing_start(sender_name: String) -> void:
+	_typing_end() # limpia por si acaso
+	_typing_row = HBoxContainer.new()
+	_typing_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_typing_row.alignment = BoxContainer.ALIGNMENT_BEGIN
+
+	var bubble := PanelContainer.new()
+	var sb := StyleBoxFlat.new()
+	sb.corner_radius_top_left = 12
+	sb.corner_radius_top_right = 12
+	sb.corner_radius_bottom_left = 12
+	sb.corner_radius_bottom_right = 12
+	sb.content_margin_left = 22
+	sb.content_margin_right = 22
+	sb.content_margin_top = 18
+	sb.content_margin_bottom = 18
+	sb.bg_color = Color(0.22,0.22,0.22,0.95)
+	bubble.add_theme_stylebox_override("panel", sb)
+
+	var lbl := Label.new()
+	lbl.text = "···" % sender_name
+	lbl.add_theme_font_size_override("font_size", 28)
+	bubble.add_child(lbl)
+
+	_typing_row.add_child(bubble)
+	chat_box.add_child(_typing_row)
+	_scroll_to_bottom()
+
+func _typing_end() -> void:
+	if is_instance_valid(_typing_row):
+		_typing_row.queue_free()
+	_typing_row = null
+
+func _npc_typing_duration_for(text: String) -> float:
+	# Duración simple por longitud (¡ajústalo a tu gusto!)
+	var base := 0.02 * float(text.length()) # 20 ms por carácter
+	return clamp(base, npc_typing_min, npc_typing_max)
+
+# Secuencia de respuestas del NPC (con "escribiendo..." + pausas)
+func _play_npc_reply_sequence(lines: Array, npc_name: String) -> void:
+	if _npc_reply_running:
+		# opcional: podrías encolar; por simplicidad, esperamos a que acabe
+		while _npc_reply_running:
+			await get_tree().process_frame
+
+	_npc_reply_running = true
+
+	for line_v in lines:
+		var line := String(line_v)
+
+		_typing_start(npc_name)
+		var t := _npc_typing_duration_for(line)
+		if t > 0.0:
+			await get_tree().create_timer(t).timeout
+		_typing_end()
+
+		_add_bubble(npc_name, line)
+		_scroll_to_bottom()
+
+		if npc_between_msgs > 0.0:
+			await get_tree().create_timer(npc_between_msgs).timeout
+
+	_npc_reply_running = false

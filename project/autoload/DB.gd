@@ -347,3 +347,27 @@ func get_visible_contacts() -> Array:
 		if _meets_requires(reqs):
 			out.append(c)
 	return out
+
+func _case_timing_defaults() -> Dictionary:
+	var case_data := DB.current_case as Dictionary
+	return case_data.get("timing", {}) as Dictionary
+
+func _contact_timing(contact_id: String) -> Dictionary:
+	var case_data := DB.current_case as Dictionary
+	for c_v in (case_data.get("contacts", []) as Array):
+		var c := c_v as Dictionary
+		if String(c.get("id","")) == contact_id:
+			return c.get("timing", {}) as Dictionary
+	return {}
+
+func _timing_number(src: Dictionary, key: String, fallback: float) -> float:
+	return float(src.get(key, fallback))
+
+func _resolve_timing_for_contact(contact_id: String) -> Dictionary:
+	var d := _case_timing_defaults()
+	var c := _contact_timing(contact_id)
+	# merge simple: lo definido en contacto pisa a global
+	var out := {}  # Dictionary
+	for k in d.keys(): out[k] = d[k]
+	for k in c.keys(): out[k] = c[k]
+	return out
