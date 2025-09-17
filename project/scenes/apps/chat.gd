@@ -11,9 +11,21 @@ extends Control
 @onready var btn_back: Button        = %BtnBack
 
 # --- Bottom bar (nuevo) ---
-@onready var add_btn: Button            = get_node_or_null("%AddBtn")       as Button
-@onready var send_btn: Button           = get_node_or_null("%SendBtn")      as Button
+@onready var add_btn: Button            = get_node_or_null("%BtnAdd")       as Button
+@onready var send_btn: Button           = get_node_or_null("%BtnSend")      as Button
 @onready var choice_picker: OptionButton = get_node_or_null("%ChoicePicker") as OptionButton
+@onready var _sfx_player: AudioStreamPlayer = %AudioStreamPlayer
+
+@export_range(0.0, 3.0, 0.05) var npc_reaction_delay: float = 0.50
+@export_range(0.0, 3.0, 0.05) var npc_typing_min: float = 0.30
+@export_range(0.0, 6.0, 0.05) var npc_typing_max: float = 1.25
+@export_range(0.0, 3.0, 0.05) var npc_between_msgs: float = 0.30
+@export_range(0.0, 0.20, 0.005) var typing_per_char: float = 0.02  # s por carácter (0.02 = 20 ms)
+@export_range(0.0, 5.0, 0.05) var message_interval: float = 0.2
+
+var _npc_reply_running := false
+var _typing_row: HBoxContainer = null
+var _opts_cache: Array = []
 
 const PATH_MESSAGING := "res://scenes/apps/Messaging.tscn"
 const BUBBLE_MIN_H: float = 110.0
@@ -28,6 +40,10 @@ func _ready() -> void:
 	if btn_back:     btn_back.pressed.connect(_on_back_pressed)
 	if add_btn:      add_btn.pressed.connect(_on_add_pressed)
 	if send_btn:     send_btn.pressed.connect(_on_send_pressed)
+	
+	if _sfx_player == null:
+		_sfx_player = AudioStreamPlayer.new()
+		add_child(_sfx_player)
 
 	var case_data: Dictionary = DB.current_case as Dictionary
 	var contact_id := GameState.current_thread
@@ -71,22 +87,25 @@ func _ready() -> void:
 
 	# mascara circular
 	_make_avatar_round()
+	DB.facts_changed.connect(func(_k): _refresh_replies())
 
 	# --- quick replies ---
 	if choice_picker:
+		dbg("after fill: items=%d sel=%d" % [choice_picker.item_count, choice_picker.get_selected()])
 		_fill_replies(GameState.current_thread, DB.current_case as Dictionary)
-
+	
 	# --- pinta el hilo ---
 	var chats: Dictionary = case_data.get("chats", {}) as Dictionary
-	var msgs: Array = chats.get(contact_id, []) as Array
+	var entry: Variant = chats.get(contact_id)
+	var history: Array = []
+	if typeof(entry) == TYPE_ARRAY:
+		history = entry as Array
+	elif typeof(entry) == TYPE_DICTIONARY:
+		history = (entry as Dictionary).get("history", []) as Array
 
 	for n in chat_box.get_children(): n.queue_free()
-	var i := 0
-	for m_v in msgs:
-		var m: Dictionary = m_v as Dictionary
-		_add_bubble(m.get("from",""), m.get("text",""))
-		i += 1
-	dbg("rendered msgs: %d" % i)
+	
+	call_deferred("_start_history_render", history)
 	
 	chat_box.add_theme_constant_override("separation", 12)
 
@@ -141,68 +160,189 @@ func _add_bubble(sender: String, text: String) -> void:
 	bubble.add_child(lbl)
 	row.add_child(bubble)
 	chat_box.add_child(row)
+	
+	# --- sonido al aparecer ---
+	_play_message_sfx()
 
 # ---------- Bottom bar actions ----------
 
 func _on_add_pressed() -> void:
-	var ids := GameState.inventory.keys()
-	if ids.is_empty():
-		_add_bubble("Yo", "No tengo pruebas aún.")
-	else:
-		_add_bubble("Yo", "Presento la prueba: %s" % str(ids[0]))
+	dbg("add pressed (present evidence)")
+	var contact_id := GameState.current_thread
 
-	await get_tree().process_frame
-	var sc := chat_box.get_parent() as ScrollContainer
-	if sc: sc.scroll_vertical = sc.get_v_scroll_bar().max_value
+	# pedir a DB la lista de pruebas presentables ahora
+	var presentables: Array = []
+	if "get_presentable_evidence" in DB or DB.has_method("get_presentable_evidence"):
+		presentables = DB.get_presentable_evidence(contact_id)
+
+	if presentables.is_empty():
+		_add_bubble("Yo", "No tengo pruebas útiles ahora.")
+		_scroll_to_bottom()
+		return
+
+	# Popup simple para elegir
+	var pm := PopupMenu.new()
+	pm.name = "_EvidenceMenu"
+	pm.add_theme_font_size_override("font_size", 32)
+	pm.add_theme_constant_override("v_separation", 8)
+	add_child(pm)
+
+	for ev_v in presentables:
+		var ev := ev_v as Dictionary
+		var idx := pm.item_count
+		pm.add_item(String(ev.get("name","(sin nombre)")))
+		pm.set_item_metadata(idx, String(ev.get("id","")))
+
+	pm.index_pressed.connect(func(ix: int) -> void:
+		var evid_id := String(pm.get_item_metadata(ix))
+		dbg("present evidence selected: %s" % evid_id)
+		if DB.has_method("apply_evidence"):
+			var res := DB.apply_evidence(contact_id, evid_id)
+			if not res.is_empty():
+				_add_bubble("Yo", String(res.get("player_text","Presento prueba.")))
+				
+				var T: Dictionary = DB.get_contact_timing(contact_id)
+				var reaction := DB.dict_get_number(T, "npc_reaction_delay", npc_reaction_delay)
+				var typ_min  := DB.dict_get_number(T, "npc_typing_min",    npc_typing_min)
+				var typ_max  := DB.dict_get_number(T, "npc_typing_max",    npc_typing_max)
+				var between  := DB.dict_get_number(T, "npc_between_msgs",  npc_between_msgs)
+				var tpc      := DB.dict_get_number(T, "typing_per_char",   typing_per_char)
+
+				# 1) pequeña pausa antes de que el NPC reaccione
+				if reaction > 0.0:
+					await get_tree().create_timer(reaction).timeout
+
+				# 2) secuenciar las líneas del NPC
+				await _play_npc_reply_sequence(
+					res.get("npc_reply", []) as Array,
+					(name_lbl.text if name_lbl else "NPC"),
+					typ_min, typ_max, tpc, between
+				)
+
+				_refresh_replies()   # por si desbloquea opciones
+				_scroll_to_bottom()
+		pm.queue_free()
+	)
+
+	# abrir bajo el botón Add
+	var gpos := add_btn.get_global_position() if is_instance_valid(add_btn) else Vector2.ZERO
+	pm.position = gpos + Vector2(0, add_btn.size.y)
+	pm.popup()
+
 
 func _on_send_pressed() -> void:
-	if not is_instance_valid(choice_picker): return
-	if choice_picker.item_count == 0: return
+	dbg("send pressed")
+	if not is_instance_valid(choice_picker):
+		dbg("choice_picker INVALID");
+		return
+	dbg("item_count=%d selected=%d" % [choice_picker.item_count, choice_picker.get_selected()])
+
+	if choice_picker.item_count == 0:
+		dbg("no items → abort");
+		return
+
 	var i := choice_picker.get_selected()
-	if i < 0: return
+	if i < 0:
+		dbg("selected = -1 → selecciono 0 por seguridad")
+		return
+
 	var text := choice_picker.get_item_text(i)
-	if text.strip_edges() == "": return
+	dbg("selected text='%s'" % text)
 
-	_add_bubble("Yo", text)
+	# Sistema nuevo con options/facts
+	if DB.has_method("apply_option"):
+		var meta: Variant = choice_picker.get_item_metadata(i)
+		dbg("metadata type_id=%d value=%s" % [typeof(meta), str(meta)])
+		var opt_id: String = String(choice_picker.get_item_metadata(i))
+		if opt_id != "":
+			var result := DB.apply_option(GameState.current_thread, opt_id)
+			dbg("apply_option('%s') -> empty=%s" % [opt_id, str(result.is_empty())])
+			if not result.is_empty():
+				_add_bubble("Yo", String(result.get("player_text", text)))
 
-	# persistir en el caso en memoria:
-	# var chats := DB.current_case["chats"] as Dictionary
-	# var arr := chats.get(GameState.current_thread, []) as Array
-	# arr.append({"from":"Yo","text":text})
-	# chats[GameState.current_thread] = arr
+				var contact_id := GameState.current_thread
+				var T: Dictionary = DB.get_contact_timing(contact_id)
 
-	await get_tree().process_frame
-	var sc := chat_box.get_parent() as ScrollContainer
-	if sc: sc.scroll_vertical = sc.get_v_scroll_bar().max_value
+				var reaction := DB.dict_get_number(T, "npc_reaction_delay", npc_reaction_delay)
+				var typ_min  := DB.dict_get_number(T, "npc_typing_min",    npc_typing_min)
+				var typ_max  := DB.dict_get_number(T, "npc_typing_max",    npc_typing_max)
+				var between  := DB.dict_get_number(T, "npc_between_msgs",  npc_between_msgs)
+				var tpc      := DB.dict_get_number(T, "typing_per_char",   typing_per_char)
+
+				# 1) pequeña pausa antes de que el NPC reaccione
+				if reaction > 0.0:
+					await get_tree().create_timer(reaction).timeout
+
+				# 2) secuenciar las líneas del NPC
+				await _play_npc_reply_sequence(
+					result.get("npc_reply", []) as Array,
+					(name_lbl.text if name_lbl else "NPC"),
+					typ_min, typ_max, tpc, between
+				)
+
+				_refresh_replies()
+				_scroll_to_bottom()
+				return
+		else:
+			dbg("opt_id vacío → paso a fallback")
+
+	# Fallback (modo antiguo solo texto)
+	if text.strip_edges() != "":
+		_add_bubble("Yo", text)
+		_scroll_to_bottom()
 	
 func _fill_replies(contact_id: String, case_data: Dictionary) -> void:
 	if not is_instance_valid(choice_picker):
 		push_error("[CHAT] %ChoicePicker no encontrado"); return
+
+	choice_picker.clear()
+	_opts_cache.clear()
+	
+	# — Reaplica overrides SIEMPRE —
 	choice_picker.add_theme_font_size_override("font_size", 32)
 	var pm := choice_picker.get_popup()
 	pm.add_theme_font_size_override("font_size", 32)
 	pm.add_theme_constant_override("v_separation", 8)
 	pm.add_theme_constant_override("item_start_padding", 16)
 	pm.add_theme_constant_override("item_end_padding", 16)
-	pm.reset_size()  # recalcula con los overrides
+	pm.reset_size()
+	
+	dbg("fill_replies(contact=%s)" % contact_id)
+	dbg("DB.has_method(get_available_options) = %s" % str(DB.has_method("get_available_options")))
 
-	choice_picker.clear()
+	# Si existen helpers nuevos en DB, úsalo (desbloqueos por facts)
+	if "get_available_options" in DB:
+		var opts: Array = DB.get_available_options(contact_id)
+		dbg("available options: %d" % opts.size())
+		for opt_v in opts:
+			var opt := opt_v as Dictionary
+			var text := String(opt.get("text",""))
+			var oid  := String(opt.get("id",""))
+			var idx := choice_picker.item_count
+			choice_picker.add_item(text)
+			choice_picker.set_item_metadata(idx, oid)  # guardamos el id
+			_opts_cache.append(opt)
+			dbg("  + opt[%d]: id=%s text=%s" % [idx, oid, text])
+		if choice_picker.item_count > 0:
+			choice_picker.select(0)
+			dbg("select(0) => %s" % choice_picker.get_item_text(0))
+		return
 
+	# Fallback compatible con tu JSON antiguo: replies[contact_id] = ["...", "..."]
 	var replies: Dictionary = case_data.get("replies", {}) as Dictionary
-	if not replies.has(contact_id):
-		push_error("[CHAT] No hay 'replies' para '%s' en el JSON" % contact_id)
-		return
+	if replies.has(contact_id):
+		var arr: Array = replies[contact_id] as Array
+		dbg("legacy replies count: %d" % arr.size())
+		for v in (replies[contact_id] as Array):
+			choice_picker.add_item(str(v))
+		if choice_picker.item_count > 0:
+			choice_picker.select(0)
+			dbg("select(0) => %s" % choice_picker.get_item_text(0))
+	else:
+		dbg("no replies for contact (legacy) → añado placeholder")
+		choice_picker.add_item("…")
+		choice_picker.select(0)
 
-	var opts: Array = replies[contact_id] as Array
-	if opts.is_empty():
-		push_error("[CHAT] 'replies[%s]' está vacío" % contact_id)
-		return
-
-	for v in opts:
-		choice_picker.add_item(str(v))
-
-	choice_picker.select(0)
-	dbg("replies for %s -> %d (text='%s')" % [contact_id, choice_picker.item_count, choice_picker.text])
 
 func _make_avatar_round() -> void:
 	if not is_instance_valid(avatar): return
@@ -278,3 +418,125 @@ func _show_avatar_preview() -> void:
 	var tween := create_tween()
 	overlay.modulate = Color(1,1,1,0)
 	tween.tween_property(overlay, "modulate:a", 1.0, 0.15).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	
+func _refresh_replies() -> void:
+	_fill_replies(GameState.current_thread, DB.current_case as Dictionary)
+	
+func _scroll_to_bottom() -> void:
+	await get_tree().process_frame
+	var sc := chat_box.get_parent() as ScrollContainer 
+	if sc: sc.scroll_vertical = sc.get_v_scroll_bar().max_value
+	
+func _render_history_sequential(history: Array) -> void:
+	var t := Timer.new()
+	t.one_shot = true
+	add_child(t)
+
+	for m_v in history:
+		var m: Dictionary = m_v as Dictionary
+		_add_bubble(String(m.get("from","")), String(m.get("text","")))
+		await get_tree().create_timer(0.01).timeout
+
+		# 🔸 cede un frame para que pinte esta burbuja
+		await get_tree().process_frame
+
+		_scroll_to_bottom()
+
+		# 🔸 pausa entre mensajes
+		if message_interval > 0.0:
+			t.start(message_interval)
+			await t.timeout
+
+func _play_message_sfx() -> void:
+	if not is_instance_valid(_sfx_player) or _sfx_player.stream == null:
+		return
+	_sfx_player.play()
+
+func _start_history_render(history: Array) -> void:
+	await get_tree().process_frame  # cede 1 frame una vez
+	await _render_history_sequential(history)
+
+func _typing_start(sender_name: String) -> void:
+	_typing_end() # limpia por si acaso
+	_typing_row = HBoxContainer.new()
+	_typing_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_typing_row.alignment = BoxContainer.ALIGNMENT_BEGIN
+
+	var bubble := PanelContainer.new()
+	var sb := StyleBoxFlat.new()
+	sb.corner_radius_top_left = 12
+	sb.corner_radius_top_right = 12
+	sb.corner_radius_bottom_left = 12
+	sb.corner_radius_bottom_right = 12
+	sb.content_margin_left = 22
+	sb.content_margin_right = 22
+	sb.content_margin_top = 18
+	sb.content_margin_bottom = 18
+	sb.bg_color = Color(0.22,0.22,0.22,0.95)
+	bubble.add_theme_stylebox_override("panel", sb)
+
+	var lbl := Label.new()
+	lbl.text = "···"
+	lbl.add_theme_font_size_override("font_size", 28)
+	bubble.add_child(lbl)
+
+	_typing_row.add_child(bubble)
+	chat_box.add_child(_typing_row)
+	_scroll_to_bottom()
+
+func _typing_end() -> void:
+	if is_instance_valid(_typing_row):
+		_typing_row.queue_free()
+	_typing_row = null
+
+func _npc_typing_duration_for(text: String) -> float:
+	# Duración simple por longitud (¡ajústalo a tu gusto!)
+	var base := 0.02 * float(text.length()) # 20 ms por carácter
+	return clamp(base, npc_typing_min, npc_typing_max)
+
+# Secuencia de respuestas del NPC (con "escribiendo..." + pausas)
+func _play_npc_reply_sequence(
+	lines: Array,
+	npc_name: String,
+	typ_min: float, typ_max: float,
+	tpc: float,                         # typing_per_char (seg/char)
+	between_default: float
+) -> void:
+	if _npc_reply_running:
+		while _npc_reply_running:
+			await get_tree().process_frame
+	_npc_reply_running = true
+
+	for line_v in lines:
+		var text := ""
+		var local_min := typ_min
+		var local_max := typ_max
+		var local_between := between_default
+
+		# Línea puede ser string o dict con overrides
+		if typeof(line_v) == TYPE_DICTIONARY:
+			var ld := line_v as Dictionary
+			text = String(ld.get("text",""))
+			if ld.has("typing_min"):  local_min     = float(ld["typing_min"])
+			if ld.has("typing_max"):  local_max     = float(ld["typing_max"])
+			if ld.has("between"):     local_between = float(ld["between"])
+			if ld.has("after_delay"): local_between = float(ld["after_delay"]) # alias
+			if ld.has("reaction_delay"):
+				await get_tree().create_timer(float(ld["reaction_delay"])).timeout
+		else:
+			text = String(line_v)
+
+		# “<NPC> está escribiendo…”
+		_typing_start(npc_name)
+		var dur: float = clamp(tpc * float(text.length()), local_min, local_max)
+		if dur > 0.0:
+			await get_tree().create_timer(dur).timeout
+		_typing_end()
+
+		_add_bubble(npc_name, text)
+		_scroll_to_bottom()
+
+		if local_between > 0.0:
+			await get_tree().create_timer(local_between).timeout
+
+	_npc_reply_running = false

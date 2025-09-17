@@ -15,7 +15,7 @@ func goto(scene_path: String, params: Dictionary = {}) -> void:
 func back() -> void:
 	if stack.size() < 2:
 		return
-	var last: Node = stack.pop_back()  # ← tipado explícito para evitar Variant
+	var last: Node = stack.pop_back()
 	if is_instance_valid(last):
 		last.queue_free()
 	root.add_child(stack[-1])

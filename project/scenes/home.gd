@@ -28,12 +28,29 @@ func _ready() -> void:
 
 	btn_back.pressed.connect(_on_back_pressed)
 
-	var ok: bool = DB.load_case(GameState.current_case_id)
-	print(">>> [Home] load_case(", GameState.current_case_id, ") -> ", ok)
+	var case_id := String(GameState.current_case_id)
+	var ok := true
+
+	# Solo recarga si hace falta (y evita llamar dos veces)
+	var needs_load := typeof(DB.current_case) != TYPE_DICTIONARY \
+		 or (DB.current_case as Dictionary).is_empty() \
+		 or String((DB.current_case as Dictionary).get("_id","")) != case_id
+	if needs_load:
+		ok = DB.load_case(case_id)
+
+	print(">>> [Home] load_case(", case_id, ") -> ", ok)
+
 	if lbl_case:
-		lbl_case.text = "Caso cargado: tutorial" if ok else "No se pudo cargar el caso"
+		if ok:
+			var display := case_id
+			if display.begins_with("case_"):
+				display = display.substr("case_".length())  # quita el prefijo
+			lbl_case.text = "Caso cargado: %s" % display
+		else:
+			lbl_case.text = "No se pudo cargar el caso"
+
 	if not ok:
-		push_warning("No se pudo cargar el caso: %s" % str(GameState.current_case_id))
+		push_warning("No se pudo cargar el caso: %s" % case_id)
 
 	router = get_node_or_null("/root/Router")
 	if router:
