@@ -353,72 +353,105 @@ func _position_and_show_menu(pm: PopupMenu) -> void:
 	pm.popup()
 
 
+## Handles the send button press for conversation options.
+## Processes the selected conversation option and triggers NPC responses.
 func _on_send_pressed() -> void:
 	dbg("send pressed")
-	if not is_instance_valid(choice_picker):
-		dbg("choice_picker INVALID");
-		return
-	dbg("item_count=%d selected=%d" % [choice_picker.item_count, choice_picker.get_selected()])
-
-	if choice_picker.item_count == 0:
-		dbg("no items → abort");
-		return
-
-	var i := choice_picker.get_selected()
-	if i < 0:
-		dbg("selected = -1 → selecciono 0 por seguridad")
-		return
-
-	var text := choice_picker.get_item_text(i)
-	dbg("selected text='%s'" % text)
-
-	# Sistema nuevo con options/facts
-	if DB.has_method("apply_option"):
-		var meta: Variant = choice_picker.get_item_metadata(i)
-		dbg("metadata type_id=%d value=%s" % [typeof(meta), str(meta)])
-		var opt_id: String = String(choice_picker.get_item_metadata(i))
-		if opt_id != "":
-			var result := DB.apply_option(GameState.current_thread, opt_id)
-			dbg("apply_option('%s') -> empty=%s" % [opt_id, str(result.is_empty())])
-			if not result.is_empty():
-				var ts := Time.get_unix_time_from_system()
-				_add_bubble("Yo", String(result.get("player_text", text)), ts)
-				push_msg(GameState.current_thread, "Yo", String(result.get("player_text", text)))
-
-				var contact_id := GameState.current_thread
-				var T: Dictionary = DB.get_contact_timing(contact_id)
-
-				var reaction := DB.dict_get_number(T, "npc_reaction_delay", npc_reaction_delay)
-				var typ_min  := DB.dict_get_number(T, "npc_typing_min",    npc_typing_min)
-				var typ_max  := DB.dict_get_number(T, "npc_typing_max",    npc_typing_max)
-				var between  := DB.dict_get_number(T, "npc_between_msgs",  npc_between_msgs)
-				var tpc      := DB.dict_get_number(T, "typing_per_char",   typing_per_char)
-
-				# 1) pequeña pausa antes de que el NPC reaccione
-				if reaction > 0.0:
-					await get_tree().create_timer(reaction).timeout
-
-				# 2) secuenciar las líneas del NPC
-				await _play_npc_reply_sequence(
-					result.get("npc_reply", []) as Array,
-					(name_lbl.text if name_lbl else "NPC"),
-					typ_min, typ_max, tpc, between,
-					contact_id  
-				)
-
-				_refresh_replies()
-				_scroll_to_bottom()
-				return
-		else:
-			dbg("opt_id vacío → paso a fallback")
-
-	# Fallback (modo antiguo solo texto)
-	if text.strip_edges() != "":
-		var ts := Time.get_unix_time_from_system()
-		_add_bubble("Yo", text, ts)
-		push_msg(GameState.current_thread, "Yo", text)
-		_scroll_to_bottom()
 	
+	if not _validate_choice_picker():
+		return
+		
+	var selected_index := choice_picker.get_selected()
+	if not _is_valid_selection(selected_index):
+		return
+	
+	var text := choice_picker.get_item_text(selected_index)
+	dbg("selected text='%s'" % text)
+	
+	# Try new system with options/facts first
+	if _try_apply_option(selected_index, text):
+		return
+		
+	# Fallback to old system (plain text)
+	_send_plain_text_message(text)
+
+## Validates that the choice picker is ready for use.
+## @return bool - True if choice picker is valid and has items
+func _validate_choice_picker() -> bool:
+	if not is_instance_valid(choice_picker):
+		dbg("choice_picker INVALID")
+		return false
+		
+	if choice_picker.item_count == 0:
+		dbg("no items → abort")
+		return false
+		
+	return true
+
+## Checks if the selected index is valid.
+## @param selected_index: int - The selected index to validate
+## @return bool - True if selection is valid
+func _is_valid_selection(selected_index: int) -> bool:
+	if selected_index < 0:
+		dbg("selected = -1 → selecciono 0 por seguridad")
+		return false
+	return true
+
+## Tries to apply a conversation option using the new system.
+## @param index: int - The selected option index
+## @param text: String - The option text
+## @return bool - True if option was successfully applied
+func _try_apply_option(index: int, text: String) -> bool:
+	if not DB.has_method("apply_option"):
+		return false
+		
+	var meta: Variant = choice_picker.get_item_metadata(index)
+	dbg("metadata type_id=%d value=%s" % [typeof(meta), str(meta)])
+	
+	var opt_id: String = String(meta)
+	if opt_id == "":
+		dbg("opt_id vacío → paso a fallback")
+		return false
+		
+	var result := DB.apply_option(GameState.current_thread, opt_id)
+	dbg("apply_option('%s') -> empty=%s" % [opt_id, str(result.is_empty())])
+	
+	if result.is_empty():
+		return false
+		
+	# Process successful option selection
+	await _process_option_result(result, text)
+	return true
+
+## Processes the result of a successful option application.
+## @param result: Dictionary - The result from DB.apply_option
+## @param fallback_text: String - Fallback text if result doesn't have player_text
+func _process_option_result(result: Dictionary, fallback_text: String) -> void:
+	var ts := Time.get_unix_time_from_system()
+	var player_text := String(result.get("player_text", fallback_text))
+	_add_bubble("Yo", player_text, ts)
+	push_msg(GameState.current_thread, "Yo", player_text)
+	
+	# Process NPC response with timing (reuse existing logic)
+	await _process_npc_response(GameState.current_thread, result.get("npc_reply", []) as Array)
+	
+	_refresh_replies()
+	_scroll_to_bottom()
+
+## Sends a plain text message using the fallback system.
+## @param text: String - The message text to send
+func _send_plain_text_message(text: String) -> void:
+	if text.strip_edges() == "":
+		return
+		
+	var ts := Time.get_unix_time_from_system()
+	_add_bubble("Yo", text, ts)
+	push_msg(GameState.current_thread, "Yo", text)
+	_scroll_to_bottom()
+	
+## Populates the conversation options in the choice picker.
+## @param contact_id: String - The contact identifier
+## @param case_data: Dictionary - The current case data
 func _fill_replies(contact_id: String, case_data: Dictionary) -> void:
 	if not is_instance_valid(choice_picker):
 		push_error("[CHAT] %ChoicePicker no encontrado"); return
@@ -499,62 +532,33 @@ func _make_avatar_round() -> void:
 func _on_back_pressed() -> void:
 	get_tree().change_scene_to_file(PATH_MESSAGING)
 
+## Handles avatar input events for preview functionality.
+## @param e: InputEvent - The input event to process
 func _on_avatar_gui_input(e: InputEvent) -> void:
 	if e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_LEFT:
 		_show_avatar_preview()
 
+## Shows the contact's avatar in a fullscreen lightbox preview.
 func _show_avatar_preview() -> void:
 	if not is_instance_valid(avatar) or avatar.texture == null:
 		return
+	# Use the centralized lightbox functionality
+	UIHelpers.show_lightbox(avatar.texture)
 
-	# Overlay a pantalla completa
-	var overlay := Control.new()
-	overlay.name = "_AvatarLightbox"
-	overlay.mouse_filter = Control.MOUSE_FILTER_STOP
-	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	add_child(overlay)
+## === CHAT MANAGEMENT FUNCTIONS ===
 
-	# Fondo oscurecido
-	var bg := ColorRect.new()
-	bg.color = Color(0, 0, 0, 0.8)
-	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	bg.mouse_filter = Control.MOUSE_FILTER_STOP
-	overlay.add_child(bg)
-
-	# Foto centrada
-	var big := TextureRect.new()
-	big.texture = avatar.texture
-	big.expand = true
-	big.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	big.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	big.offset_left = 48
-	big.offset_right = -48
-	big.offset_top = 48
-	big.offset_bottom = -48
-	big.material = null
-	overlay.add_child(big)
-
-	# Cerrar: clic/ESC
-	overlay.gui_input.connect(func(ev: InputEvent) -> void:
-		if ev is InputEventMouseButton and ev.pressed:
-			overlay.queue_free()
-		elif ev is InputEventKey and ev.pressed and ev.keycode == KEY_ESCAPE:
-			overlay.queue_free()
-	)
-
-	# animación de entrada
-	var tween := create_tween()
-	overlay.modulate = Color(1,1,1,0)
-	tween.tween_property(overlay, "modulate:a", 1.0, 0.15).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-	
+## Refreshes the conversation options for the current contact.
 func _refresh_replies() -> void:
 	_fill_replies(GameState.current_thread, DB.current_case as Dictionary)
-	
+
+## Scrolls the chat to the bottom to show the latest messages.
 func _scroll_to_bottom() -> void:
 	await get_tree().process_frame
 	var sc := chat_box.get_parent() as ScrollContainer 
 	if sc: sc.scroll_vertical = sc.get_v_scroll_bar().max_value
-	
+
+## Renders message history sequentially with timing between messages.
+## @param history: Array - Array of message dictionaries to render
 func _render_history_sequential(history: Array) -> void:
 	var t := Timer.new()
 	t.one_shot = true
@@ -577,11 +581,14 @@ func _render_history_sequential(history: Array) -> void:
 			t.start(message_interval)
 			await t.timeout
 
+## Plays a message sound effect if available.
 func _play_message_sfx() -> void:
 	if not is_instance_valid(_sfx_player) or _sfx_player.stream == null:
 		return
 	_sfx_player.play()
 
+## Starts rendering the conversation history with proper timing.
+## @param history: Array - Message history to render
 func _start_history_render(history: Array) -> void:
 	await get_tree().process_frame  # cede 1 frame una vez
 	await _render_history_sequential(history)
@@ -681,43 +688,13 @@ func _play_npc_reply_sequence(
 
 	_npc_reply_running = false
 
-# --- Lightbox local para imágenes en chat ---
-func _show_image_lightbox(tex: Texture2D) -> void:
-	if tex == null:
-		return
-	var overlay: Control = Control.new()
-	overlay.name = "_ImgLightbox"
-	overlay.mouse_filter = Control.MOUSE_FILTER_STOP
-	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	add_child(overlay)
+## === IMAGE BUBBLE FUNCTIONS ===
 
-	var bg: ColorRect = ColorRect.new()
-	bg.color = Color(0, 0, 0, 0.85)
-	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	bg.mouse_filter = Control.MOUSE_FILTER_STOP
-	overlay.add_child(bg)
-
-	var big: TextureRect = TextureRect.new()
-	big.texture = tex
-	big.expand = true
-	big.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	big.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	big.offset_left = 48
-	big.offset_right = -48
-	big.offset_top = 48
-	big.offset_bottom = -48
-	overlay.add_child(big)
-
-	overlay.gui_input.connect(func(e: InputEvent) -> void:
-		if (e is InputEventMouseButton and e.pressed) or (e is InputEventKey and e.pressed and e.keycode == KEY_ESCAPE):
-			overlay.queue_free()
-	)
-
-	var tween: Tween = create_tween()
-	overlay.modulate = Color(1,1,1,0)
-	tween.tween_property(overlay, "modulate:a", 1.0, 0.15).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-
-# --- Burbuja de imagen ---
+## Creates and adds an image message bubble to the chat.
+## @param sender: String - The sender name
+## @param image_path: String - Path to the image resource
+## @param caption: String - Optional caption text
+## @param ts: int - Unix timestamp (0 to hide timestamp)
 func _add_image_bubble(sender: String, image_path: String, caption: String = "", ts: int = 0) -> void:
 	var tex: Texture2D = load(image_path) as Texture2D
 	if tex == null:
@@ -754,10 +731,10 @@ func _add_image_bubble(sender: String, image_path: String, caption: String = "",
 	img.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 	img.custom_minimum_size = Vector2(minf(_target_bubble_width(), 640), 360)  # tamaño cómodo
 	img.mouse_filter = Control.MOUSE_FILTER_PASS
-	# click para zoom
+	# Click to zoom using centralized lightbox
 	img.gui_input.connect(func(e: InputEvent) -> void:
 		if e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_LEFT:
-			_show_image_lightbox(tex)
+			UIHelpers.show_lightbox(tex)
 	)
 
 	v.add_child(img)

@@ -1,19 +1,26 @@
+## Home screen interface for the smartphone simulation.
+##
+## This script manages the main smartphone home screen with app icons
+## that navigate to different parts of the investigation game.
 extends Control
 
+## App button references
 @onready var btn_messages: BaseButton = %btn_messages
 @onready var lbl_case: Label = %CaseInfo
-
 @onready var btn_gallery:  BaseButton = %btn_gallery
 @onready var btn_mail:     BaseButton = %btn_mail
 @onready var btn_back:     BaseButton = %BtnBack
 @onready var btn_browser:     BaseButton = %btn_browser
 
+## Pre-loaded app scenes
 @export var messaging_scene: PackedScene = preload("res://scenes/apps/Messaging.tscn")
 @export var gallery_scene:   PackedScene = preload("res://scenes/apps/Gallery.tscn")
 @export var mail_scene:      PackedScene = preload("res://scenes/apps/Mail.tscn")
 @export var browser_scene:   PackedScene = preload("res://scenes/apps/Browser.tscn")
 
+## Router reference for navigation
 var router: Node = null
+## Maps button names to their corresponding scenes
 var SCENE_MAP: Dictionary
 
 func _ready() -> void:
