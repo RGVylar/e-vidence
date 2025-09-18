@@ -143,7 +143,7 @@ func apply_option(contact_id: String, option_id: String) -> Dictionary:
 
 	for i in options.size():
 		var opt: Dictionary = options[i] as Dictionary
-		if String(opt.get("id","")) == option_id and not bool(opt.get("used", false)):
+		if str(opt.get("id","")) == option_id and not bool(opt.get("used", false)):
 			# marcar usada
 			# ---- usos / repetible ----
 			var repeatable := bool(opt.get("repeatable", false))
@@ -171,8 +171,15 @@ func apply_option(contact_id: String, option_id: String) -> Dictionary:
 			# persistir mensajes en history
 			var player_text := String(opt.get("text",""))
 			history.append({"from":"Yo", "text": player_text})
+
 			for line_v in (opt.get("npc_reply", []) as Array):
-				history.append({"from": _contact_name(contact_id), "text": String(line_v)})
+				if typeof(line_v) == TYPE_DICTIONARY and (line_v as Dictionary).has("image"):
+					var ld := line_v as Dictionary
+					var img_path := String(ld.get("image",""))
+					var caption  := String(ld.get("text",""))
+					history.append({"from": _contact_name(contact_id), "image": img_path, "text": caption})
+				else:
+					history.append({"from": _contact_name(contact_id), "text": str(line_v)})
 
 			chat["history"] = history
 			chats[contact_id] = chat
@@ -280,7 +287,13 @@ func apply_evidence(contact_id: String, evidence_id: String) -> Dictionary:
 	var player_text := String(rx.get("text", "Presento una prueba."))
 	history.append({"from":"Yo", "text": player_text})
 	for line_v in (rx.get("npc_reply", []) as Array):
-		history.append({"from": _contact_name(contact_id), "text": String(line_v)})
+		if typeof(line_v) == TYPE_DICTIONARY and (line_v as Dictionary).has("image"):
+			var ld := line_v as Dictionary
+			var img_path := String(ld.get("image",""))
+			var caption  := String(ld.get("text",""))
+			history.append({"from": _contact_name(contact_id), "image": img_path, "text": caption})
+		else:
+			history.append({"from": _contact_name(contact_id), "text": String(line_v)})
 
 	chat["history"] = history
 	chats[contact_id] = chat

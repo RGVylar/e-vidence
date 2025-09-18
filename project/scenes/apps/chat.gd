@@ -1,5 +1,7 @@
 extends Control
 
+# test github actions
+
 # --- Top bar ---
 @onready var avatar: TextureRect = get_node_or_null("%Avatar") as TextureRect
 @onready var name_lbl: Label     = get_node_or_null("%Name")   as Label   # nuevo
@@ -21,7 +23,7 @@ extends Control
 @export_range(0.0, 6.0, 0.05) var npc_typing_max: float = 1.25
 @export_range(0.0, 3.0, 0.05) var npc_between_msgs: float = 0.30
 @export_range(0.0, 0.20, 0.005) var typing_per_char: float = 0.02  # s por carácter (0.02 = 20 ms)
-@export_range(0.0, 5.0, 0.05) var message_interval: float = 0.2
+@export_range(0.0, 5.0, 0.05) var message_interval: float = 0.3
 
 var _npc_reply_running := false
 var _typing_row: HBoxContainer = null
@@ -434,15 +436,15 @@ func _render_history_sequential(history: Array) -> void:
 
 	for m_v in history:
 		var m: Dictionary = m_v as Dictionary
-		_add_bubble(String(m.get("from","")), String(m.get("text","")))
+		var from: String = String(m.get("from",""))
+		if m.has("image"):
+			_add_image_bubble(from, String(m["image"]), String(m.get("text","")))
+		else:
+			_add_bubble(from, String(m.get("text","")))
+
 		await get_tree().create_timer(0.01).timeout
-
-		# 🔸 cede un frame para que pinte esta burbuja
 		await get_tree().process_frame
-
 		_scroll_to_bottom()
-
-		# 🔸 pausa entre mensajes
 		if message_interval > 0.0:
 			t.start(message_interval)
 			await t.timeout
@@ -512,6 +514,7 @@ func _play_npc_reply_sequence(
 		var local_min := typ_min
 		var local_max := typ_max
 		var local_between := between_default
+		var image_path := ""
 
 		# Línea puede ser string o dict con overrides
 		if typeof(line_v) == TYPE_DICTIONARY:
@@ -521,10 +524,12 @@ func _play_npc_reply_sequence(
 			if ld.has("typing_max"):  local_max     = float(ld["typing_max"])
 			if ld.has("between"):     local_between = float(ld["between"])
 			if ld.has("after_delay"): local_between = float(ld["after_delay"]) # alias
+			if ld.has("image"):       image_path = String(ld["image"]) 
 			if ld.has("reaction_delay"):
 				await get_tree().create_timer(float(ld["reaction_delay"])).timeout
 		else:
 			text = String(line_v)
+			image_path = ""  # por si acaso
 
 		# “<NPC> está escribiendo…”
 		_typing_start(npc_name)
@@ -533,10 +538,114 @@ func _play_npc_reply_sequence(
 			await get_tree().create_timer(dur).timeout
 		_typing_end()
 
-		_add_bubble(npc_name, text)
+		if image_path != "":
+			_add_image_bubble(npc_name, image_path, text)  # si hay imagen, la mostramos; text va como caption opcional
+		else:
+			_add_bubble(npc_name, text)
+
 		_scroll_to_bottom()
 
 		if local_between > 0.0:
 			await get_tree().create_timer(local_between).timeout
 
 	_npc_reply_running = false
+
+# --- Lightbox local para imágenes en chat ---
+func _show_image_lightbox(tex: Texture2D) -> void:
+	if tex == null:
+		return
+	var overlay: Control = Control.new()
+	overlay.name = "_ImgLightbox"
+	overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	add_child(overlay)
+
+	var bg: ColorRect = ColorRect.new()
+	bg.color = Color(0, 0, 0, 0.85)
+	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	bg.mouse_filter = Control.MOUSE_FILTER_STOP
+	overlay.add_child(bg)
+
+	var big: TextureRect = TextureRect.new()
+	big.texture = tex
+	big.expand = true
+	big.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	big.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	big.offset_left = 48
+	big.offset_right = -48
+	big.offset_top = 48
+	big.offset_bottom = -48
+	overlay.add_child(big)
+
+	overlay.gui_input.connect(func(e: InputEvent) -> void:
+		if (e is InputEventMouseButton and e.pressed) or (e is InputEventKey and e.pressed and e.keycode == KEY_ESCAPE):
+			overlay.queue_free()
+	)
+
+	var tween: Tween = create_tween()
+	overlay.modulate = Color(1,1,1,0)
+	tween.tween_property(overlay, "modulate:a", 1.0, 0.15).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+
+# --- Burbuja de imagen ---
+func _add_image_bubble(sender: String, image_path: String, caption: String = "") -> void:
+	var tex: Texture2D = load(image_path) as Texture2D
+	if tex == null:
+		# fallback si no carga la imagen
+		_add_bubble(sender, "[imagen no encontrada] " + image_path)
+		return
+
+	var row := HBoxContainer.new()
+	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.alignment = BoxContainer.ALIGNMENT_END if sender == "Yo" else BoxContainer.ALIGNMENT_BEGIN
+	row.add_theme_constant_override("separation", 6)
+
+	var bubble := PanelContainer.new()
+	bubble.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+
+	var sb := StyleBoxFlat.new()
+	sb.corner_radius_top_left = 12
+	sb.corner_radius_top_right = 12
+	sb.corner_radius_bottom_left = 12
+	sb.corner_radius_bottom_right = 12
+	sb.content_margin_left = 12
+	sb.content_margin_right = 12
+	sb.content_margin_top = 12
+	sb.content_margin_bottom = 12
+	sb.bg_color = Color(0.18,0.35,0.18,0.95) if sender == "Yo" else Color(0.22,0.22,0.22,0.95)
+	bubble.add_theme_stylebox_override("panel", sb)
+
+	var v := VBoxContainer.new()
+	v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+
+	var img := TextureRect.new()
+	img.texture = tex
+	img.expand = true
+	img.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	img.custom_minimum_size = Vector2(minf(_target_bubble_width(), 640), 360)  # tamaño cómodo
+	img.mouse_filter = Control.MOUSE_FILTER_PASS
+	# click para zoom
+	img.gui_input.connect(func(e: InputEvent) -> void:
+		if e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_LEFT:
+			_show_image_lightbox(tex)
+	)
+
+	v.add_child(img)
+
+	if caption.strip_edges() != "":
+		var lbl := RichTextLabel.new()
+		lbl.bbcode_enabled = false
+		lbl.fit_content = true
+		lbl.scroll_active = false
+		lbl.autowrap_mode = TextServer.AUTOWRAP_WORD
+		lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		lbl.add_theme_color_override("default_color", Color.WHITE)
+		lbl.text = caption
+		lbl.add_theme_font_size_override("normal_font_size", 26)
+		lbl.add_theme_constant_override("line_separation", 6)
+		v.add_child(lbl)
+
+	bubble.add_child(v)
+	row.add_child(bubble)
+	chat_box.add_child(row)
+
+	_play_message_sfx()

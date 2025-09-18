@@ -13,9 +13,16 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-size_flags_horizontal = 3
-size_flags_vertical = 3
 script = ExtResource("1_svoro")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.12, 0.12, 0.12, 1)
 
 [node name="MarginContainer" type="MarginContainer" parent="."]
 layout_mode = 1
@@ -24,18 +31,22 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+theme_override_constants/margin_left = 24
+theme_override_constants/margin_top = 24
+theme_override_constants/margin_right = 24
+theme_override_constants/margin_bottom = 24
 
 [node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer"]
 layout_mode = 2
+theme_override_constants/separation = 16
 
 [node name="TopBar" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
-custom_minimum_size = Vector2(0, 100)
 layout_mode = 2
-size_flags_horizontal = 3
+theme_override_constants/separation = 12
 
 [node name="BtnBack" type="Button" parent="MarginContainer/VBoxContainer/TopBar"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(300, 0)
+custom_minimum_size = Vector2(220, 64)
 layout_mode = 2
 theme_override_font_sizes/font_size = 40
 text = "⬅ Volver"
@@ -43,42 +54,52 @@ text = "⬅ Volver"
 [node name="Title" type="Label" parent="MarginContainer/VBoxContainer/TopBar"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 40
-text = "Mensajeria"
+theme_override_font_sizes/font_size = 28
+text = "Menu"
 horizontal_alignment = 1
 vertical_alignment = 1
 
 [node name="CaseInfo" type="Label" parent="MarginContainer/VBoxContainer"]
 unique_name_in_owner = true
+modulate = Color(1, 1, 1, 0.8)
 layout_mode = 2
-theme_override_font_sizes/font_size = 40
+theme_override_font_sizes/font_size = 20
 horizontal_alignment = 1
 
-[node name="GridContainer" type="GridContainer" parent="MarginContainer/VBoxContainer"]
+[node name="Center" type="CenterContainer" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
 size_flags_vertical = 3
+
+[node name="GridContainer" type="GridContainer" parent="MarginContainer/VBoxContainer/Center"]
+layout_mode = 2
+theme_override_constants/h_separation = 24
+theme_override_constants/v_separation = 24
 columns = 3
 
-[node name="btn_messages" type="TextureButton" parent="MarginContainer/VBoxContainer/GridContainer"]
+[node name="btn_messages" type="TextureButton" parent="MarginContainer/VBoxContainer/Center/GridContainer"]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(128, 128)
 layout_mode = 2
-size_flags_horizontal = 6
+tooltip_text = "Mensajería"
 texture_normal = ExtResource("2_svoro")
 
-[node name="btn_gallery" type="TextureButton" parent="MarginContainer/VBoxContainer/GridContainer"]
+[node name="btn_gallery" type="TextureButton" parent="MarginContainer/VBoxContainer/Center/GridContainer"]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(128, 128)
 layout_mode = 2
-size_flags_horizontal = 3
+tooltip_text = "Galería"
 texture_normal = ExtResource("3_svoro")
 
-[node name="btn_mail" type="TextureButton" parent="MarginContainer/VBoxContainer/GridContainer"]
+[node name="btn_mail" type="TextureButton" parent="MarginContainer/VBoxContainer/Center/GridContainer"]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(128, 128)
 layout_mode = 2
-size_flags_horizontal = 3
+tooltip_text = "Correo"
 texture_normal = ExtResource("4_yk4sq")
 
-[node name="btn_browser" type="TextureButton" parent="MarginContainer/VBoxContainer/GridContainer"]
+[node name="btn_browser" type="TextureButton" parent="MarginContainer/VBoxContainer/Center/GridContainer"]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(128, 128)
 layout_mode = 2
-size_flags_horizontal = 6
+tooltip_text = "Navegador"
 texture_normal = ExtResource("5_72wqp")

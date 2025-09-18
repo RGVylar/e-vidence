@@ -26,9 +26,8 @@ DB="*res://autoload/DB.gd"
 
 window/size/viewport_width=1080
 window/size/viewport_height=1920
-window/size/mode=2
 window/stretch/mode="canvas_items"
-window/stretch/aspect="keep_height"
+window/stretch/aspect="expand"
 window/handheld/orientation=1
 
 [rendering]
