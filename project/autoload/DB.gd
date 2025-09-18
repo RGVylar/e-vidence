@@ -1,11 +1,25 @@
+## Database management system for case data and game state.
+##
+## This autoload handles loading and managing case data from JSON files,
+## including conversations, evidence, gallery items, and game facts.
+## It provides the core data access layer for the investigation game.
 extends Node
 
+## Dictionary storing arbitrary state data (currently unused)
 var state: Dictionary = {}
+## Directory path where case JSON files are stored
 const CASE_DIR := "res://data"
+## Currently loaded case data
 var current_case: Dictionary = {}
 
+## Emitted when game facts change, carrying array of changed fact keys
 signal facts_changed(changed_keys: Array[String])
 
+## Loads a case from a JSON file in the data directory.
+## Automatically adds .json extension if not present and initializes
+## the facts dictionary if it doesn't exist.
+## @param case_id: String - Case identifier, with or without .json extension
+## @return bool - True if case loaded successfully, false otherwise
 func load_case(case_id: String) -> bool:
 	var fname := case_id if case_id.ends_with(".json") else "%s.json" % case_id
 	var path := "%s/%s" % [CASE_DIR, fname]
@@ -35,16 +49,24 @@ func load_case(case_id: String) -> bool:
 
 	return true
 
-
+## Returns the facts dictionary from the current case.
+## @return Dictionary - The facts dictionary, or empty dict if no case loaded
 func get_facts() -> Dictionary:
 	if typeof(current_case) == TYPE_DICTIONARY:
 		return (current_case as Dictionary).get("facts", {}) as Dictionary
 	return {}
 
+## Gets the value of a specific fact.
+## @param key: String - The fact key to retrieve
+## @param default_val: bool - Default value if fact doesn't exist
+## @return bool - The fact value or default_val
 func get_fact(key: String, default_val := false) -> bool:
 	var facts := get_facts()
 	return bool(facts.get(key, default_val))
 
+## Sets a fact value and emits facts_changed signal if value changed.
+## @param key: String - The fact key to set
+## @param value: bool - The value to assign to the fact
 func set_fact(key: String, value: bool = true) -> void:
 	if typeof(current_case) != TYPE_DICTIONARY:
 		return
@@ -57,6 +79,9 @@ func set_fact(key: String, value: bool = true) -> void:
 	if prev != value:
 		emit_signal("facts_changed", [key])
 
+## Checks if an array of requirements are met by current facts.
+## @param reqs: Array - Array of requirement strings/dictionaries
+## @return bool - True if all requirements are satisfied
 func _meets_requires(reqs: Array) -> bool:
 	for r_v in reqs:
 		var r := String(r_v)
@@ -69,6 +94,10 @@ func _meets_requires(reqs: Array) -> bool:
 				return false
 	return true
 
+## Gets available conversation options for a contact.
+## Filters options based on requirements, usage limits, and repeatability.
+## @param contact_id: String - The contact identifier
+## @return Array - Array of available option dictionaries
 func get_available_options(contact_id: String) -> Array:
 	if typeof(current_case) != TYPE_DICTIONARY:
 		return []
@@ -117,8 +146,12 @@ func get_available_options(contact_id: String) -> Array:
 			out.append(opt)
 	return out
 
+## Applies a conversation option selection and processes its effects.
+## Handles option usage tracking, effect processing, and conversation history.
+## @param contact_id: String - The contact identifier  
+## @param option_id: String - The option identifier to apply
+## @return Dictionary - Contains "player_text" and "npc_reply" keys
 func apply_option(contact_id: String, option_id: String) -> Dictionary:
-	# Devuelve: { "player_text": String, "npc_reply": Array[String] }
 	if typeof(current_case) != TYPE_DICTIONARY:
 		return {}
 
@@ -193,14 +226,17 @@ func apply_option(contact_id: String, option_id: String) -> Dictionary:
 
 	return {}
 
+## === EVIDENCE SYSTEM ===
 
-# --- CATALOGO / PRESENTABLES -------------------------------
-
+## Gets the complete evidence catalog from the current case.
+## @return Array - Array of evidence dictionaries
 func get_evidence_catalog() -> Array:
 	if typeof(current_case) != TYPE_DICTIONARY:
 		return []
 	return (current_case as Dictionary).get("evidence", []) as Array
 
+## Creates a map of evidence ID to evidence data for quick lookup.
+## @return Dictionary - Evidence map with IDs as keys
 func _get_evidence_map() -> Dictionary:
 	var map: Dictionary = {}
 	for ev_v in get_evidence_catalog():
@@ -208,6 +244,10 @@ func _get_evidence_map() -> Dictionary:
 		map[String(ev.get("id",""))] = ev
 	return map
 
+## Gets evidence that can be presented to a specific contact.
+## Filters based on player inventory and contact-specific reactions.
+## @param contact_id: String - The contact identifier
+## @return Array - Array of presentable evidence dictionaries  
 func get_presentable_evidence(contact_id: String) -> Array:
 	if typeof(current_case) != TYPE_DICTIONARY:
 		return []
@@ -240,6 +280,10 @@ func get_presentable_evidence(contact_id: String) -> Array:
 			out.append(ev)
 	return out
 
+## Applies evidence presentation to a contact and processes reactions.
+## @param contact_id: String - Contact to present evidence to
+## @param evidence_id: String - Evidence ID to present
+## @return Dictionary - Contains "player_text" and "npc_reply" keys if successful
 func apply_evidence(contact_id: String, evidence_id: String) -> Dictionary:
 	if typeof(current_case) != TYPE_DICTIONARY:
 		return {}
@@ -305,6 +349,8 @@ func apply_evidence(contact_id: String, evidence_id: String) -> Dictionary:
 		"npc_reply": (rx.get("npc_reply", []) as Array)
 	}
 
+## Gets gallery items that are visible based on unlock requirements.
+## @return Array - Array of visible gallery item dictionaries
 func get_gallery_items() -> Array:
 	if typeof(current_case) != TYPE_DICTIONARY:
 		return []
@@ -321,14 +367,17 @@ func get_gallery_items() -> Array:
 			out.append(item)
 	return out
 
-# --- EVIDENCE OWNERSHIP -----------------------------------
+## === INVENTORY MANAGEMENT ===
 
+## Ensures the GameState has a valid inventory dictionary.
 func _ensure_inventory() -> void:
 	if not ("inventory" in GameState):
 		GameState.inventory = {}
 	elif typeof(GameState.inventory) != TYPE_DICTIONARY:
 		GameState.inventory = {}
 
+## Grants evidence to the player's inventory.
+## @param eid: String - Evidence ID to grant
 func grant_evidence(eid: String) -> void:
 	_ensure_inventory()
 	var inv: Dictionary = GameState.inventory as Dictionary
@@ -336,12 +385,17 @@ func grant_evidence(eid: String) -> void:
 	GameState.inventory = inv
 	print("[DB] evidence granted -> ", eid)
 
+## Gets array of evidence IDs owned by the player.
+## @return Array - Array of evidence ID strings
 func _owned_evidence_ids() -> Array:
 	_ensure_inventory()
 	return (GameState.inventory as Dictionary).keys()
 
-# --- HOOK GENERAL DE EFFECTS (para options y evidence) -----
+## === EFFECT PROCESSING ===
 
+## Processes game effects from conversations and evidence presentation.
+## Supports: give_evidence:id, unlock_gallery:id, unlock_contact:id, or fact setting.
+## @param e: String - Effect string to process
 func _process_effect(e: String) -> void:
 	if e.begins_with("give_evidence:"):
 		var id := e.substr("give_evidence:".length())
@@ -359,6 +413,11 @@ func _process_effect(e: String) -> void:
 	# por defecto: fact booleana
 	set_fact(e, true)
 
+## === UTILITY FUNCTIONS ===
+
+## Gets the display name for a contact ID.
+## @param id: String - Contact identifier
+## @return String - Contact display name or ID if not found
 func _contact_name(id: String) -> String:
 	if typeof(current_case) != TYPE_DICTIONARY:
 		return id
@@ -369,6 +428,8 @@ func _contact_name(id: String) -> String:
 			return String(c.get("name", id))
 	return id
 
+## Gets contacts that are visible based on requirement checks.
+## @return Array - Array of contact dictionaries that meet requirements
 func get_visible_contacts() -> Array:
 	if typeof(current_case) != TYPE_DICTIONARY:
 		return []
@@ -393,6 +454,11 @@ func get_contact_timing(contact_id: String) -> Dictionary:
 			return (t_v as Dictionary) if typeof(t_v) == TYPE_DICTIONARY else {}
 	return {}
 
+## Safely gets a number value from a dictionary with fallback.
+## @param d: Dictionary - Dictionary to search
+## @param key: String - Key to look up
+## @param fallback: float - Default value if key not found or invalid
+## @return float - The number value or fallback
 func dict_get_number(d: Dictionary, key: String, fallback: float) -> float:
 	if d.has(key):
 		var v: Variant = d[key]
