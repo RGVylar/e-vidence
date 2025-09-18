@@ -11,7 +11,7 @@ var root: Node = null
 var stack: Array[Node] = []
 
 func _ready() -> void:
-	print("Router: Initialization complete")
+	print("Router: Ready")
 
 ## Changes the current scene to a new scene while maintaining a scene stack.
 ## This method instantiates the new scene, initializes it with parameters if possible,
