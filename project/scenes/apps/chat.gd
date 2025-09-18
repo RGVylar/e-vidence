@@ -54,10 +54,7 @@ const DEBUG := true
 
 ## Debug logging helper function.
 ## @param m: String - Message to log
-func dbg(m: String) -> void: 
-	if DEBUG: 
-		print("[CHAT] ", m)
-
+func dbg(m: String) -> void: if DEBUG: print("[CHAT] ", m)
 ## === INITIALIZATION ===
 
 func _ready() -> void:
