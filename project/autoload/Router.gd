@@ -1,10 +1,17 @@
+## Router autoload for scene navigation and stack management.
+## 
+## This class provides navigation methods for switching between scenes
+## while maintaining a navigation stack for back navigation.
+## It supports both stack-based navigation (goto/back) and direct scene changes (go).
 extends Node
 
+## The root node that contains the current scene
 var root: Node = null
+## Stack of scenes for navigation history
 var stack: Array[Node] = []
 
 func _ready() -> void:
-	print("Router listo")
+	print("Router: Ready")
 
 ## Changes the current scene to a new scene while maintaining a scene stack.
 ## This method instantiates the new scene, initializes it with parameters if possible,
@@ -42,8 +49,8 @@ func _swap_scene(new_scene: Node) -> void:
 
 ## Changes the current scene directly without maintaining a stack.
 ## Supports both PackedScene and String path inputs.
-## @param target: PackedScene|String - The target scene or path to change to
-func go(target) -> void:
+## @param target: Variant - The target scene (PackedScene) or path (String) to change to
+func go(target: Variant) -> void:
 	var path := ""
 	if target is PackedScene:
 		path = target.resource_path

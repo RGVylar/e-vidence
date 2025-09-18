@@ -1,5 +1,13 @@
+## UI utility functions for common interface operations.
+##
+## This autoload provides reusable UI functionality across the application,
+## particularly for image viewing and overlay management.
 extends Node
 
+## Shows an image in a fullscreen lightbox overlay.
+## Creates a modal overlay with the provided texture, allowing the user
+## to view it at full size and close it by clicking or pressing ESC.
+## @param tex: Texture2D - The texture to display in the lightbox
 func show_lightbox(tex: Texture2D) -> void:
 	if tex == null:
 		return
