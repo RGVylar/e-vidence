@@ -44,12 +44,13 @@ theme_override_constants/separation = 12
 unique_name_in_owner = true
 custom_minimum_size = Vector2(220, 64)
 layout_mode = 2
+theme_override_font_sizes/font_size = 40
 text = "⬅ Volver"
 
 [node name="Title" type="Label" parent="MarginContainer/VBoxContainer/TopBar"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 28
+theme_override_font_sizes/font_size = 40
 text = "Mensajería"
 horizontal_alignment = 1
 vertical_alignment = 1

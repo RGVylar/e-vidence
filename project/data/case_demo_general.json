@@ -9,7 +9,7 @@
 				"npc_typing_min": 0.20000000000000001,
 				"npc_typing_max": 0.59999999999999998,
 				"npc_between_msgs": 0.40000000000000002,
-				"typing_per_char": 0.014999999999999999
+				"typing_per_char": 0.014999999999999991
 			}
 		},
 		{
@@ -36,6 +36,11 @@
 					"text": "👋 Hola, soy el contacto definido en 'contacts'."
 				},
 				{
+					"from": "DemoNPC",
+					"image": "res://assets/avatars/david.jpg",
+					"text": "Te muestro mi foto de perfil como ejemplo 📸"
+				},
+				{
 					"from": "Yo",
 					"text": "Este histórico viene de 'chats[npc1].history'."
 				},
@@ -46,6 +51,21 @@
 			],
 			"options": [
 				{
+					"id": "unlock_gallery_item",
+					"text": "Desbloquear una foto de la galería",
+					"effects": [
+						"unlock_gallery:foto_evento"
+					],
+					"npc_reply": [
+						"Acabo de desbloquear 'foto_evento' en tu galería. Ve a la galería para verla.",
+						{
+							"image": "res://assets/case/gatos/cats/auri.jpg",
+							"text": "Te adelanto una vista previa 🖼️",
+							"between": 0.5
+						}
+					]
+				},
+				{
 					"id": "accept_case",
 					"text": "Probar 'options' (y obtener una prueba)",
 					"effects": [
@@ -54,16 +74,6 @@
 					"npc_reply": [
 						"Perfecto, acabas de usar 'options'.",
 						"Te he dado una prueba llamada 'flyer_demo'. Prueba el botón + para presentarla."
-					]
-				},
-				{
-					"id": "unlock_gallery_item",
-					"text": "Desbloquear una foto de la galería",
-					"effects": [
-						"unlock_gallery:foto_evento"
-					],
-					"npc_reply": [
-						"Acabo de desbloquear 'foto_evento' en tu galería. Ve a la galería para verla."
 					]
 				},
 				{
@@ -133,6 +143,11 @@
 				{
 					"from": "Pilar (CM)",
 					"text": "¡Hola! Aparezco porque me han desbloqueado con 'unlock_contact:npc2'."
+				},
+				{
+					"from": "Pilar (CM)",
+					"image": "res://assets/avatars/pilar.jpg",
+					"text": "Este soy yo, por cierto 😊"
 				}
 			],
 			"options": [
@@ -143,7 +158,12 @@
 						"unlock_gallery:nota_borrador"
 					],
 					"npc_reply": [
-						"Te paso un borrador a la galería ('nota_borrador'). Échale un ojo."
+						"Te paso un borrador a la galería ('nota_borrador'). Échale un ojo.",
+						{
+							"image": "res://assets/case/gatos/cats/cosmo.jpg",
+							"text": "Aquí tienes una vista previa",
+							"between": 0.5
+						}
 					]
 				},
 				{

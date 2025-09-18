@@ -54,7 +54,7 @@ text = "⬅ Volver"
 [node name="Title" type="Label" parent="MarginContainer/VBoxContainer/TopBar"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 28
+theme_override_font_sizes/font_size = 40
 text = "Menu"
 horizontal_alignment = 1
 vertical_alignment = 1
