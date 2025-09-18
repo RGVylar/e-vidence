@@ -1,7 +1,7 @@
 extends Control
 
-@onready var btn_back: Button = %BtnBack
-@onready var grid: GridContainer = %GridContainer
+@onready var btn_back: Button    = $MarginContainer/VBoxContainer/TopBar/BtnBack
+@onready var grid: GridContainer = $MarginContainer/VBoxContainer/Scroll/GridContainer
 
 func _ready() -> void:
 	btn_back.pressed.connect(_on_back_pressed)

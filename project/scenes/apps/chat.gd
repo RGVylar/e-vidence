@@ -1,5 +1,7 @@
 extends Control
 
+# test github actions
+
 # --- Top bar ---
 @onready var avatar: TextureRect = get_node_or_null("%Avatar") as TextureRect
 @onready var name_lbl: Label     = get_node_or_null("%Name")   as Label   # nuevo
@@ -21,7 +23,7 @@ extends Control
 @export_range(0.0, 6.0, 0.05) var npc_typing_max: float = 1.25
 @export_range(0.0, 3.0, 0.05) var npc_between_msgs: float = 0.30
 @export_range(0.0, 0.20, 0.005) var typing_per_char: float = 0.02  # s por carácter (0.02 = 20 ms)
-@export_range(0.0, 5.0, 0.05) var message_interval: float = 0.2
+@export_range(0.0, 5.0, 0.05) var message_interval: float = 0.3
 
 var _npc_reply_running := false
 var _typing_row: HBoxContainer = null
@@ -123,7 +125,7 @@ func _target_bubble_width() -> float:
 		avail = get_viewport_rect().size.x
 	return minf(avail * BUBBLE_RATIO, BUBBLE_MAX_W)
 
-func _add_bubble(sender: String, text: String) -> void:
+func _add_bubble(sender: String, text: String, ts: int = 0) -> void:
 	var row := HBoxContainer.new()
 	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.alignment = BoxContainer.ALIGNMENT_END if sender == "Yo" else BoxContainer.ALIGNMENT_BEGIN
@@ -145,6 +147,9 @@ func _add_bubble(sender: String, text: String) -> void:
 	sb.bg_color = Color(0.18,0.35,0.18,0.95) if sender == "Yo" else Color(0.22,0.22,0.22,0.95)
 	bubble.add_theme_stylebox_override("panel", sb)
 
+	var col := VBoxContainer.new()
+	col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+
 	# Texto
 	var lbl := RichTextLabel.new()
 	lbl.bbcode_enabled = false
@@ -156,8 +161,43 @@ func _add_bubble(sender: String, text: String) -> void:
 	lbl.text = text
 	lbl.add_theme_font_size_override("normal_font_size", 30)
 	lbl.add_theme_constant_override("line_separation", 8)
+	col.add_child(lbl)
 
-	bubble.add_child(lbl)
+	# Hora
+	if ts > 0:
+		var time_lbl := Label.new()
+		time_lbl.add_theme_font_size_override("font_size", 18)
+		time_lbl.modulate = Color(1,1,1,0.7)
+		time_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+
+		var pill := PanelContainer.new()
+		var sd := StyleBoxFlat.new()
+		sd.bg_color = Color(1,1,1,0.10)
+		sd.content_margin_left = 8
+		sd.content_margin_right = 8
+		sd.content_margin_top = 2
+		sd.content_margin_bottom = 2
+		sd.corner_radius_top_left = 8
+		sd.corner_radius_top_right = 8
+		sd.corner_radius_bottom_left = 8
+		sd.corner_radius_bottom_right = 8
+		pill.add_theme_stylebox_override("panel", sd)
+		pill.add_child(time_lbl)
+
+		var meta := HBoxContainer.new()
+		meta.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		meta.add_theme_constant_override("separation", 6)
+		var spacer := Control.new()
+		spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		meta.add_child(spacer)   # empuja a la derecha
+		meta.add_child(pill)
+		col.add_child(meta)
+
+		var dt := Time.get_datetime_dict_from_unix_time(ts)
+		time_lbl.text = "%02d:%02d" % [dt.hour, dt.minute]
+		col.add_child(time_lbl)
+
+	bubble.add_child(col)
 	row.add_child(bubble)
 	chat_box.add_child(row)
 	
@@ -176,7 +216,9 @@ func _on_add_pressed() -> void:
 		presentables = DB.get_presentable_evidence(contact_id)
 
 	if presentables.is_empty():
-		_add_bubble("Yo", "No tengo pruebas útiles ahora.")
+		var ts := Time.get_unix_time_from_system()
+		_add_bubble("Yo", "No tengo pruebas útiles ahora.", ts)
+		push_msg(GameState.current_thread, "Yo", "No tengo pruebas útiles ahora.") 
 		_scroll_to_bottom()
 		return
 
@@ -199,8 +241,10 @@ func _on_add_pressed() -> void:
 		if DB.has_method("apply_evidence"):
 			var res := DB.apply_evidence(contact_id, evid_id)
 			if not res.is_empty():
-				_add_bubble("Yo", String(res.get("player_text","Presento prueba.")))
-				
+				var ts := Time.get_unix_time_from_system()
+				_add_bubble("Yo", String(res.get("player_text","Presento prueba.")), ts)
+				push_msg(contact_id, "Yo", String(res.get("player_text","Presento prueba.")))  # ← AÑADE AQUÍ
+
 				var T: Dictionary = DB.get_contact_timing(contact_id)
 				var reaction := DB.dict_get_number(T, "npc_reaction_delay", npc_reaction_delay)
 				var typ_min  := DB.dict_get_number(T, "npc_typing_min",    npc_typing_min)
@@ -216,7 +260,8 @@ func _on_add_pressed() -> void:
 				await _play_npc_reply_sequence(
 					res.get("npc_reply", []) as Array,
 					(name_lbl.text if name_lbl else "NPC"),
-					typ_min, typ_max, tpc, between
+					typ_min, typ_max, tpc, between,
+					contact_id      
 				)
 
 				_refresh_replies()   # por si desbloquea opciones
@@ -258,7 +303,9 @@ func _on_send_pressed() -> void:
 			var result := DB.apply_option(GameState.current_thread, opt_id)
 			dbg("apply_option('%s') -> empty=%s" % [opt_id, str(result.is_empty())])
 			if not result.is_empty():
-				_add_bubble("Yo", String(result.get("player_text", text)))
+				var ts := Time.get_unix_time_from_system()
+				_add_bubble("Yo", String(result.get("player_text", text)), ts)
+				push_msg(GameState.current_thread, "Yo", String(result.get("player_text", text)))
 
 				var contact_id := GameState.current_thread
 				var T: Dictionary = DB.get_contact_timing(contact_id)
@@ -277,7 +324,8 @@ func _on_send_pressed() -> void:
 				await _play_npc_reply_sequence(
 					result.get("npc_reply", []) as Array,
 					(name_lbl.text if name_lbl else "NPC"),
-					typ_min, typ_max, tpc, between
+					typ_min, typ_max, tpc, between,
+					contact_id  
 				)
 
 				_refresh_replies()
@@ -288,7 +336,9 @@ func _on_send_pressed() -> void:
 
 	# Fallback (modo antiguo solo texto)
 	if text.strip_edges() != "":
-		_add_bubble("Yo", text)
+		var ts := Time.get_unix_time_from_system()
+		_add_bubble("Yo", text, ts)
+		push_msg(GameState.current_thread, "Yo", text)
 		_scroll_to_bottom()
 	
 func _fill_replies(contact_id: String, case_data: Dictionary) -> void:
@@ -434,15 +484,17 @@ func _render_history_sequential(history: Array) -> void:
 
 	for m_v in history:
 		var m: Dictionary = m_v as Dictionary
-		_add_bubble(String(m.get("from","")), String(m.get("text","")))
+		var from: String = String(m.get("from",""))
+		var ts: int = int(m.get("ts", 0))
+
+		if m.has("image"):
+			_add_image_bubble(from, String(m["image"]), String(m.get("text","")), ts)
+		else:
+			_add_bubble(from, String(m.get("text","")), ts)
+
 		await get_tree().create_timer(0.01).timeout
-
-		# 🔸 cede un frame para que pinte esta burbuja
 		await get_tree().process_frame
-
 		_scroll_to_bottom()
-
-		# 🔸 pausa entre mensajes
 		if message_interval > 0.0:
 			t.start(message_interval)
 			await t.timeout
@@ -500,7 +552,8 @@ func _play_npc_reply_sequence(
 	npc_name: String,
 	typ_min: float, typ_max: float,
 	tpc: float,                         # typing_per_char (seg/char)
-	between_default: float
+	between_default: float,
+	contact_id: String 
 ) -> void:
 	if _npc_reply_running:
 		while _npc_reply_running:
@@ -512,6 +565,7 @@ func _play_npc_reply_sequence(
 		var local_min := typ_min
 		var local_max := typ_max
 		var local_between := between_default
+		var image_path := ""
 
 		# Línea puede ser string o dict con overrides
 		if typeof(line_v) == TYPE_DICTIONARY:
@@ -521,10 +575,12 @@ func _play_npc_reply_sequence(
 			if ld.has("typing_max"):  local_max     = float(ld["typing_max"])
 			if ld.has("between"):     local_between = float(ld["between"])
 			if ld.has("after_delay"): local_between = float(ld["after_delay"]) # alias
+			if ld.has("image"):       image_path = String(ld["image"]) 
 			if ld.has("reaction_delay"):
 				await get_tree().create_timer(float(ld["reaction_delay"])).timeout
 		else:
 			text = String(line_v)
+			image_path = ""  # por si acaso
 
 		# “<NPC> está escribiendo…”
 		_typing_start(npc_name)
@@ -532,11 +588,177 @@ func _play_npc_reply_sequence(
 		if dur > 0.0:
 			await get_tree().create_timer(dur).timeout
 		_typing_end()
+		var ts := Time.get_unix_time_from_system()
+		if image_path != "":
+			_add_image_bubble(npc_name, image_path, text, ts)  # si hay imagen, la mostramos; text va como caption opcional
+			push_msg(contact_id, npc_name, text)
+		else:
+			_add_bubble(npc_name, text, ts)
+			push_msg(contact_id, npc_name, text)
 
-		_add_bubble(npc_name, text)
 		_scroll_to_bottom()
 
 		if local_between > 0.0:
 			await get_tree().create_timer(local_between).timeout
 
 	_npc_reply_running = false
+
+# --- Lightbox local para imágenes en chat ---
+func _show_image_lightbox(tex: Texture2D) -> void:
+	if tex == null:
+		return
+	var overlay: Control = Control.new()
+	overlay.name = "_ImgLightbox"
+	overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	add_child(overlay)
+
+	var bg: ColorRect = ColorRect.new()
+	bg.color = Color(0, 0, 0, 0.85)
+	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	bg.mouse_filter = Control.MOUSE_FILTER_STOP
+	overlay.add_child(bg)
+
+	var big: TextureRect = TextureRect.new()
+	big.texture = tex
+	big.expand = true
+	big.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	big.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	big.offset_left = 48
+	big.offset_right = -48
+	big.offset_top = 48
+	big.offset_bottom = -48
+	overlay.add_child(big)
+
+	overlay.gui_input.connect(func(e: InputEvent) -> void:
+		if (e is InputEventMouseButton and e.pressed) or (e is InputEventKey and e.pressed and e.keycode == KEY_ESCAPE):
+			overlay.queue_free()
+	)
+
+	var tween: Tween = create_tween()
+	overlay.modulate = Color(1,1,1,0)
+	tween.tween_property(overlay, "modulate:a", 1.0, 0.15).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+
+# --- Burbuja de imagen ---
+func _add_image_bubble(sender: String, image_path: String, caption: String = "", ts: int = 0) -> void:
+	var tex: Texture2D = load(image_path) as Texture2D
+	if tex == null:
+		# fallback si no carga la imagen
+		_add_bubble(sender, "[imagen no encontrada] " + image_path, ts)
+		return
+
+	var row := HBoxContainer.new()
+	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.alignment = BoxContainer.ALIGNMENT_END if sender == "Yo" else BoxContainer.ALIGNMENT_BEGIN
+	row.add_theme_constant_override("separation", 6)
+
+	var bubble := PanelContainer.new()
+	bubble.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+
+	var sb := StyleBoxFlat.new()
+	sb.corner_radius_top_left = 12
+	sb.corner_radius_top_right = 12
+	sb.corner_radius_bottom_left = 12
+	sb.corner_radius_bottom_right = 12
+	sb.content_margin_left = 12
+	sb.content_margin_right = 12
+	sb.content_margin_top = 12
+	sb.content_margin_bottom = 12
+	sb.bg_color = Color(0.18,0.35,0.18,0.95) if sender == "Yo" else Color(0.22,0.22,0.22,0.95)
+	bubble.add_theme_stylebox_override("panel", sb)
+
+	var v := VBoxContainer.new()
+	v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+
+	var img := TextureRect.new()
+	img.texture = tex
+	img.expand = true
+	img.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	img.custom_minimum_size = Vector2(minf(_target_bubble_width(), 640), 360)  # tamaño cómodo
+	img.mouse_filter = Control.MOUSE_FILTER_PASS
+	# click para zoom
+	img.gui_input.connect(func(e: InputEvent) -> void:
+		if e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_LEFT:
+			_show_image_lightbox(tex)
+	)
+
+	v.add_child(img)
+
+	if caption.strip_edges() != "":
+		var lbl := RichTextLabel.new()
+		lbl.bbcode_enabled = false
+		lbl.fit_content = true
+		lbl.scroll_active = false
+		lbl.autowrap_mode = TextServer.AUTOWRAP_WORD
+		lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		lbl.add_theme_color_override("default_color", Color.WHITE)
+		lbl.text = caption
+		lbl.add_theme_font_size_override("normal_font_size", 26)
+		lbl.add_theme_constant_override("line_separation", 6)
+		v.add_child(lbl)
+
+	if ts > 0:
+		var time_lbl := Label.new()
+		time_lbl.add_theme_font_size_override("font_size", 18)
+		time_lbl.modulate = Color(1,1,1,0.7)
+		time_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+
+		var pill := PanelContainer.new()
+		var sd := StyleBoxFlat.new()
+		sd.bg_color = Color(1,1,1,0.10)
+		sd.content_margin_left = 8
+		sd.content_margin_right = 8
+		sd.content_margin_top = 2
+		sd.content_margin_bottom = 2
+		sd.corner_radius_top_left = 8
+		sd.corner_radius_top_right = 8
+		sd.corner_radius_bottom_left = 8
+		sd.corner_radius_bottom_right = 8
+		pill.add_theme_stylebox_override("panel", sd)
+		pill.add_child(time_lbl)
+
+		var meta := HBoxContainer.new()
+		meta.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		meta.add_theme_constant_override("separation", 6)
+		var spacer := Control.new()
+		spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		meta.add_child(spacer)
+		meta.add_child(pill)
+		v.add_child(meta)
+
+		var dt := Time.get_datetime_dict_from_unix_time(ts)
+		time_lbl.text = "%02d:%02d" % [dt.hour, dt.minute]
+		v.add_child(time_lbl)
+
+	bubble.add_child(v)
+	row.add_child(bubble)
+	chat_box.add_child(row)
+
+	_play_message_sfx()
+
+func push_msg(contact_id: String, from: String, text: String, ts: int = -1) -> void:
+	var chats := (DB.current_case as Dictionary).get("chats", {}) as Dictionary
+	var entry: Variant = chats.get(contact_id)
+	var history: Array = []
+	if ts <= 0:
+		ts = Time.get_unix_time_from_system()
+	if typeof(entry) == TYPE_ARRAY:
+		history = entry as Array
+	elif typeof(entry) == TYPE_DICTIONARY:
+		history = (entry as Dictionary).get("history", []) as Array
+
+	var msg := {
+		"from": from,
+		"text": text,
+		"ts": ts
+	}
+	history.append(msg)
+
+	if typeof(entry) == TYPE_ARRAY:
+		chats[contact_id] = history
+	else:
+		(entry as Dictionary)["history"] = history
+		chats[contact_id] = entry
+
+	# persiste si guardas estado fuera del caso
+	DB.emit_signal("facts_changed", "chat_"+contact_id)
