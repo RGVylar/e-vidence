@@ -294,7 +294,7 @@ func _create_evidence_menu(presentables: Array) -> PopupMenu:
 func _connect_evidence_menu_selection(pm: PopupMenu, contact_id: String) -> void:
 	pm.index_pressed.connect(func(ix: int) -> void:
 		var evid_id := String(pm.get_item_metadata(ix))
-		await _handle_evidence_selection(contact_id, evid_id)
+		_handle_evidence_selection(contact_id, evid_id)
 		pm.queue_free()
 	)
 
