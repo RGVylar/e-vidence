@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=3 uid="uid://br77pbjcy3pwi"]
+[gd_scene load_steps=3 format=3 uid="uid://br77pbjcy3pwi"]
 
 [ext_resource type="Script" uid="uid://cmxkafvosm271" path="res://scenes/apps/chat.gd" id="1_nawxj"]
+[ext_resource type="AudioStream" uid="uid://bua2hmi7mrf82" path="res://assets/sfx/notification.ogg" id="2_3db4a"]
 
 [node name="Chat" type="Control"]
 layout_mode = 3
@@ -60,7 +61,7 @@ size_flags_stretch_ratio = 1.5
 
 [node name="Avatar" type="TextureRect" parent="MarginContainer/VBoxContainer/TopBar/ColorRect/HBoxContainer/AvatarWrap"]
 unique_name_in_owner = true
-layout_mode = 2
+layout_mode = 0
 expand_mode = 1
 stretch_mode = 5
 
@@ -111,3 +112,8 @@ custom_minimum_size = Vector2(200, 64)
 layout_mode = 2
 theme_override_font_sizes/font_size = 40
 text = "➤"
+
+[node name="AudioStreamPlayer" type="AudioStreamPlayer" parent="."]
+unique_name_in_owner = true
+stream = ExtResource("2_3db4a")
+volume_db = -10.0
