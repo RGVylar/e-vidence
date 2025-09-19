@@ -21,6 +21,7 @@ config/icon="res://icon.svg"
 Router="*res://autoload/Router.gd"
 GameState="*res://autoload/GameState.gd"
 DB="*res://autoload/DB.gd"
+SaveGame="*res://autoload/SaveGame.gd"
 
 [display]
 

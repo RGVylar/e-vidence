@@ -1,0 +1,142 @@
+[gd_scene load_steps=2 format=3 uid="uid://bfw7n3nqyhk8q"]
+
+[ext_resource type="Script" path="res://scenes/SaveGameManager.gd" id="1_1a2b3"]
+
+[node name="SaveGameManager" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_1a2b3")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.1, 0.1, 0.1, 1)
+
+[node name="MainContainer" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 20
+
+[node name="Title" type="Label" parent="MainContainer"]
+layout_mode = 2
+text = "E-VIDENCE - Selector de Partidas"
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 36
+
+[node name="Content" type="HBoxContainer" parent="MainContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 40
+
+[node name="SavesPanel" type="Panel" parent="MainContainer/Content"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="SavesContainer" type="VBoxContainer" parent="MainContainer/Content/SavesPanel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 20.0
+offset_top = 20.0
+offset_right = -20.0
+offset_bottom = -20.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="SavesTitle" type="Label" parent="MainContainer/Content/SavesPanel/SavesContainer"]
+layout_mode = 2
+text = "Partidas Guardadas"
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 24
+
+[node name="ScrollContainer" type="ScrollContainer" parent="MainContainer/Content/SavesPanel/SavesContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="SaveList" type="VBoxContainer" parent="MainContainer/Content/SavesPanel/SavesContainer/ScrollContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ButtonsPanel" type="VBoxContainer" parent="MainContainer/Content"]
+layout_mode = 2
+size_flags_horizontal = 0
+theme_override_constants/separation = 20
+
+[node name="BtnNewGame" type="Button" parent="MainContainer/Content/ButtonsPanel"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(200, 80)
+layout_mode = 2
+text = "Nueva Partida"
+theme_override_font_sizes/font_size = 20
+
+[node name="BtnExit" type="Button" parent="MainContainer/Content/ButtonsPanel"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(200, 80)
+layout_mode = 2
+text = "Salir"
+theme_override_font_sizes/font_size = 20
+
+[node name="NewGameDialog" type="AcceptDialog" parent="."]
+unique_name_in_owner = true
+title = "Nueva Partida"
+initial_position = 2
+size = Vector2i(400, 200)
+
+[node name="DialogContainer" type="VBoxContainer" parent="NewGameDialog"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 8.0
+offset_top = 36.0
+offset_right = -8.0
+offset_bottom = -49.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 20
+
+[node name="NameLabel" type="Label" parent="NewGameDialog/DialogContainer"]
+layout_mode = 2
+text = "Introduce tu nombre:"
+theme_override_font_sizes/font_size = 18
+
+[node name="NameInput" type="LineEdit" parent="NewGameDialog/DialogContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+placeholder_text = "Tu nombre..."
+theme_override_font_sizes/font_size = 16
+
+[node name="ButtonsContainer" type="HBoxContainer" parent="NewGameDialog/DialogContainer"]
+layout_mode = 2
+
+[node name="BtnCancel" type="Button" parent="NewGameDialog/DialogContainer/ButtonsContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Cancelar"
+
+[node name="BtnCreate" type="Button" parent="NewGameDialog/DialogContainer/ButtonsContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Crear Partida"
+
+[node name="DeleteConfirmation" type="ConfirmationDialog" parent="."]
+unique_name_in_owner = true
+title = "Confirmar Borrado"
+initial_position = 2
+size = Vector2i(350, 150)
+dialog_text = "¿Estás seguro?"
