@@ -4,9 +4,13 @@ var state: Dictionary = {}
 const CASE_DIR := "res://data"
 var current_case: Dictionary = {}
 
+const DB_DEBUG := false
+func _log(s: String) -> void:
+	if DB_DEBUG: print("[DB] ", s)
+
 signal facts_changed(changed_keys: Array[String])
 
-func load_case(case_id: String) -> bool:
+func load_case(case_id: String, keep_state: bool = true) -> bool:
 	var fname := case_id if case_id.ends_with(".json") else "%s.json" % case_id
 	var path := "%s/%s" % [CASE_DIR, fname]
 
@@ -28,10 +32,15 @@ func load_case(case_id: String) -> bool:
 	var parsed: Dictionary = parsed_v
 
 	current_case = parsed_v as Dictionary
+	if not keep_state:
+		state = {}  # solo si explícitamente quieres limpiar
 	current_case["_id"] = case_id
-	var facts_v: Variant = (current_case as Dictionary).get("facts", null)
-	if typeof(facts_v) != TYPE_DICTIONARY:
-		current_case["facts"] = {}
+	var defaults: Dictionary = current_case.get("defaults", {}) as Dictionary
+	for k in defaults.keys():
+		if not state.has(k):
+			state[k] = defaults[k]
+
+	_log("load_case('%s') keep_state=%s state.size=%d" % [case_id, str(keep_state), state.size()])
 
 	return true
 
@@ -160,6 +169,9 @@ func apply_option(contact_id: String, option_id: String) -> Dictionary:
 			if max_uses > 0 and uses >= max_uses and not repeatable:
 				opt["used"] = true
 
+			_log("apply_option cid=%s id=%s uses=%d used=%s" % [
+				contact_id, option_id, uses, str(bool(opt.get("used", false)))
+			])
 			options[i] = opt
 			chat["options"] = options
 			# --------------------------
@@ -334,8 +346,7 @@ func grant_evidence(eid: String) -> void:
 	var inv: Dictionary = GameState.inventory as Dictionary
 	inv[eid] = true
 	GameState.inventory = inv
-	print("[DB] evidence granted -> ", eid)
-
+	_log("evidence granted -> %s" % eid)
 func _owned_evidence_ids() -> Array:
 	_ensure_inventory()
 	return (GameState.inventory as Dictionary).keys()
@@ -399,3 +410,110 @@ func dict_get_number(d: Dictionary, key: String, fallback: float) -> float:
 		if typeof(v) in [TYPE_INT, TYPE_FLOAT, TYPE_STRING]:
 			return float(v)
 	return fallback
+ 
+func get_progress_snapshot() -> Dictionary:
+	var snap: Dictionary = {}
+
+	# facts (banderas del caso)
+	var facts_v: Variant = current_case.get("facts", {})
+	snap["facts"] = (facts_v as Dictionary).duplicate(true)
+
+	# chats: history + used_evidence + usos de options
+	var chats_prog: Dictionary = {}
+	var chats_v: Variant = current_case.get("chats", {})
+	var chats: Dictionary = (chats_v as Dictionary)
+	for cid in chats.keys():
+		var entry: Variant = chats[cid]
+		var chat: Dictionary
+		if typeof(entry) == TYPE_DICTIONARY:
+			chat = entry as Dictionary
+		elif typeof(entry) == TYPE_ARRAY:
+			chat = {"history": (entry as Array)}
+		else:
+			continue
+
+		var hist: Array = (chat.get("history", []) as Array).duplicate(true)
+		var used_ev: Array = (chat.get("used_evidence", []) as Array).duplicate(true)
+
+		# Mapa de usos de opciones: id -> {uses, used}
+		var used_map: Dictionary = {}
+		var opts: Array = chat.get("options", []) as Array
+		for opt_v in opts:
+			var opt: Dictionary = opt_v as Dictionary
+			var oid := String(opt.get("id",""))
+			if oid == "": continue
+			var rec := {
+				"uses": int(opt.get("uses", 0)),
+				"used": bool(opt.get("used", false))
+			}
+			used_map[oid] = rec
+
+		chats_prog[cid] = {
+			"history": hist,
+			"used_evidence": used_ev,
+			"used_options": used_map
+		}
+	snap["chats"] = chats_prog
+	return snap
+
+func apply_progress_snapshot(snap: Dictionary) -> void:
+	if snap.is_empty(): return
+
+	# facts
+	var facts_snap_v: Variant = snap.get("facts", {})
+	var facts_snap: Dictionary = facts_snap_v as Dictionary
+	if typeof(current_case) == TYPE_DICTIONARY:
+		var case_dict: Dictionary = current_case as Dictionary
+		var facts_now: Dictionary = case_dict.get("facts", {}) as Dictionary
+		for k in facts_snap.keys():
+			facts_now[k] = facts_snap[k]
+		case_dict["facts"] = facts_now
+		current_case = case_dict
+
+	# chats
+	var chats_snap_v: Variant = snap.get("chats", {})
+	var chats_snap: Dictionary = chats_snap_v as Dictionary
+	var chats_now_v: Variant = (current_case as Dictionary).get("chats", {})
+	var chats_now: Dictionary = chats_now_v as Dictionary
+
+	for cid in chats_snap.keys():
+		var sc: Dictionary = chats_snap[cid] as Dictionary
+		var entry_v: Variant = chats_now.get(cid)
+		var chat: Dictionary
+		if typeof(entry_v) == TYPE_DICTIONARY:
+			chat = entry_v as Dictionary
+		elif typeof(entry_v) == TYPE_ARRAY:
+			chat = {"history": (entry_v as Array)}
+		else:
+			chat = {"history": []}
+
+		# history
+		var hist_v: Variant = sc.get("history", [])
+		chat["history"] = (hist_v as Array).duplicate(true)
+
+		# used_evidence
+		var ue_v: Variant = sc.get("used_evidence", [])
+		chat["used_evidence"] = (ue_v as Array).duplicate(true)
+
+		# used_options -> aplicar sobre las options del asset
+		var used_map_v: Variant = sc.get("used_options", {})
+		var used_map: Dictionary = used_map_v as Dictionary
+		var opts: Array = chat.get("options", []) as Array
+		for i in opts.size():
+			var opt: Dictionary = opts[i] as Dictionary
+			var oid := String(opt.get("id",""))
+			if oid != "" and used_map.has(oid):
+				var rec: Dictionary = used_map[oid] as Dictionary
+				opt["uses"] = int(rec.get("uses", 0))
+				if bool(rec.get("used", false)):
+					opt["used"] = true
+				opts[i] = opt
+		chat["options"] = opts
+
+		chats_now[cid] = chat
+
+	(current_case as Dictionary)["chats"] = chats_now
+	_log("apply_progress_snapshot facts=%d chats=%d" % [
+		(int)(facts_snap.size()),
+		(int)(chats_snap.size())
+	])

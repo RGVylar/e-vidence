@@ -34,8 +34,9 @@ const BUBBLE_MIN_H: float = 110.0
 const BUBBLE_RATIO: float = 0.86   # % del ancho disponible
 const BUBBLE_MAX_W: float = 820.0  # tope de ancho
 
-const DEBUG := true
-func dbg(m: String) -> void: if DEBUG: print("[CHAT] ", m)
+const CHAT_DEBUG := false
+func _log(s: String) -> void:
+	if CHAT_DEBUG: print("[CHAT] ", s)
 
 func _ready() -> void:
 	# señales seguras
@@ -93,7 +94,7 @@ func _ready() -> void:
 
 	# --- quick replies ---
 	if choice_picker:
-		dbg("after fill: items=%d sel=%d" % [choice_picker.item_count, choice_picker.get_selected()])
+		_log("after fill: items=%d sel=%d" % [choice_picker.item_count, choice_picker.get_selected()])
 		_fill_replies(GameState.current_thread, DB.current_case as Dictionary)
 	
 	# --- pinta el hilo ---
@@ -207,7 +208,7 @@ func _add_bubble(sender: String, text: String, ts: int = 0) -> void:
 # ---------- Bottom bar actions ----------
 
 func _on_add_pressed() -> void:
-	dbg("add pressed (present evidence)")
+	_log("add pressed (present evidence)")
 	var contact_id := GameState.current_thread
 
 	# pedir a DB la lista de pruebas presentables ahora
@@ -237,7 +238,7 @@ func _on_add_pressed() -> void:
 
 	pm.index_pressed.connect(func(ix: int) -> void:
 		var evid_id := String(pm.get_item_metadata(ix))
-		dbg("present evidence selected: %s" % evid_id)
+		_log("Presentando prueba: %s" % evid_id)
 		if DB.has_method("apply_evidence"):
 			var res := DB.apply_evidence(contact_id, evid_id)
 			if not res.is_empty():
@@ -276,32 +277,32 @@ func _on_add_pressed() -> void:
 
 
 func _on_send_pressed() -> void:
-	dbg("send pressed")
+	_log("send pressed")
 	if not is_instance_valid(choice_picker):
-		dbg("choice_picker INVALID");
+		_log("choice_picker INVALID")
 		return
-	dbg("item_count=%d selected=%d" % [choice_picker.item_count, choice_picker.get_selected()])
+	_log("item_count=%d selected=%d" % [choice_picker.item_count, choice_picker.get_selected()])
 
 	if choice_picker.item_count == 0:
-		dbg("no items → abort");
+		_log("No hay opciones para enviar")
 		return
 
 	var i := choice_picker.get_selected()
 	if i < 0:
-		dbg("selected = -1 → selecciono 0 por seguridad")
+		_log("Selected = -1 → selecciono 0 por seguridad")
 		return
 
 	var text := choice_picker.get_item_text(i)
-	dbg("selected text='%s'" % text)
+	_log("Selected text='%s'" % text)
 
 	# Sistema nuevo con options/facts
 	if DB.has_method("apply_option"):
-		var meta: Variant = choice_picker.get_item_metadata(i)
-		dbg("metadata type_id=%d value=%s" % [typeof(meta), str(meta)])
+		var meta: Variant = choice_picker.get_item_metadata(i)	
+		_log("metadata type_id=%d value=%s" % [typeof(meta), str(meta)])
 		var opt_id: String = String(choice_picker.get_item_metadata(i))
 		if opt_id != "":
 			var result := DB.apply_option(GameState.current_thread, opt_id)
-			dbg("apply_option('%s') -> empty=%s" % [opt_id, str(result.is_empty())])
+			_log("apply_option('%s') -> %s" % [opt_id, str(result)])
 			if not result.is_empty():
 				var ts := Time.get_unix_time_from_system()
 				_add_bubble("Yo", String(result.get("player_text", text)), ts)
@@ -327,12 +328,13 @@ func _on_send_pressed() -> void:
 					typ_min, typ_max, tpc, between,
 					contact_id  
 				)
-
+				var ok := SaveGame.save_current_game()
+				_log("autosave after NPC reply → %s (save_id=%s)" % [str(ok), SaveGame.current_save_id])
 				_refresh_replies()
 				_scroll_to_bottom()
 				return
 		else:
-			dbg("opt_id vacío → paso a fallback")
+			_log("opt_id vacío → paso a fallback")
 
 	# Fallback (modo antiguo solo texto)
 	if text.strip_edges() != "":
@@ -357,13 +359,13 @@ func _fill_replies(contact_id: String, case_data: Dictionary) -> void:
 	pm.add_theme_constant_override("item_end_padding", 16)
 	pm.reset_size()
 	
-	dbg("fill_replies(contact=%s)" % contact_id)
-	dbg("DB.has_method(get_available_options) = %s" % str(DB.has_method("get_available_options")))
+	_log("fill_replies(contact=%s)" % contact_id)
+	_log("DB.has_method(get_available_options) = %s" % str(DB.has_method("get_available_options")))
 
 	# Si existen helpers nuevos en DB, úsalo (desbloqueos por facts)
 	if "get_available_options" in DB:
 		var opts: Array = DB.get_available_options(contact_id)
-		dbg("available options: %d" % opts.size())
+		_log("available options: %d" % opts.size())
 		for opt_v in opts:
 			var opt := opt_v as Dictionary
 			var text := String(opt.get("text",""))
@@ -372,24 +374,24 @@ func _fill_replies(contact_id: String, case_data: Dictionary) -> void:
 			choice_picker.add_item(text)
 			choice_picker.set_item_metadata(idx, oid)  # guardamos el id
 			_opts_cache.append(opt)
-			dbg("  + opt[%d]: id=%s text=%s" % [idx, oid, text])
+			_log("  + opt[%d]: id=%s text=%s" % [idx, oid, text])
 		if choice_picker.item_count > 0:
 			choice_picker.select(0)
-			dbg("select(0) => %s" % choice_picker.get_item_text(0))
+			_log("Opciones cargadas: %d" % choice_picker.item_count)
 		return
 
 	# Fallback compatible con tu JSON antiguo: replies[contact_id] = ["...", "..."]
 	var replies: Dictionary = case_data.get("replies", {}) as Dictionary
 	if replies.has(contact_id):
 		var arr: Array = replies[contact_id] as Array
-		dbg("legacy replies count: %d" % arr.size())
+		_log("legacy replies count: %d" % arr.size())
 		for v in (replies[contact_id] as Array):
 			choice_picker.add_item(str(v))
 		if choice_picker.item_count > 0:
 			choice_picker.select(0)
-			dbg("select(0) => %s" % choice_picker.get_item_text(0))
+			_log("Opciones cargadas: %d" % choice_picker.item_count)
 	else:
-		dbg("no replies for contact (legacy) → añado placeholder")
+		_log("No hay opciones para este contacto")
 		choice_picker.add_item("…")
 		choice_picker.select(0)
 
@@ -761,4 +763,5 @@ func push_msg(contact_id: String, from: String, text: String, ts: int = -1) -> v
 		chats[contact_id] = entry
 
 	# persiste si guardas estado fuera del caso
+	_log("push_msg: chats[%s] now has %d messages" % [contact_id, history.size()])
 	DB.emit_signal("facts_changed", "chat_"+contact_id)

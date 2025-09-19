@@ -57,4 +57,4 @@ func _on_start_pressed() -> void:
 	# Si no se ha tocado el selector pero hay elementos, aplica el primero
 	if case_select.selected < 0 and cases.size() > 0:
 		_on_case_selected(0)
-	get_tree().change_scene_to_file("res://scenes/Home.tscn")
+	get_tree().change_scene_to_file("res://scenes/SaveGameManager.tscn")

@@ -11,7 +11,7 @@ config_version=5
 [application]
 
 config/name="e-vidence"
-config/version="0.0.2"
+config/version="0.0.4"
 run/main_scene="uid://onh34eg11o8u"
 config/features=PackedStringArray("4.5", "GL Compatibility")
 config/icon="res://icon.svg"
@@ -21,6 +21,7 @@ config/icon="res://icon.svg"
 Router="*res://autoload/Router.gd"
 GameState="*res://autoload/GameState.gd"
 DB="*res://autoload/DB.gd"
+SaveGame="*res://autoload/SaveGame.gd"
 
 [display]
 

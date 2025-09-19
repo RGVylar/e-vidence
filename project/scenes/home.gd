@@ -16,8 +16,12 @@ extends Control
 var router: Node = null
 var SCENE_MAP: Dictionary
 
+const HOME_DEBUG := false
+func _log(s: String) -> void:
+	if HOME_DEBUG: print("[HOME] ", s)
+
 func _ready() -> void:
-	print(">>> [Home] _ready() iniciado")
+	_log("_ready() iniciado")
 	
 	SCENE_MAP = {
 		"btn_messages": messaging_scene,
@@ -38,16 +42,28 @@ func _ready() -> void:
 	if needs_load:
 		ok = DB.load_case(case_id)
 
-	print(">>> [Home] load_case(", case_id, ") -> ", ok)
+	_log("load_case(%s) -> %s" % [case_id, str(ok)])
 
 	if lbl_case:
+		var save_name = ""
+		if SaveGame.has_method("get_current_save_name"):
+			save_name = SaveGame.get_current_save_name()
+		
 		if ok:
 			var display := case_id
 			if display.begins_with("case_"):
 				display = display.substr("case_".length())  # quita el prefijo
-			lbl_case.text = "Caso cargado: %s" % display
+			var case_text = "Caso cargado: %s" % display
+			if not save_name.is_empty():
+				lbl_case.text = "Jugador: %s | %s" % [save_name, case_text]
+			else:
+				lbl_case.text = case_text
 		else:
-			lbl_case.text = "No se pudo cargar el caso"
+			var case_text = "No se pudo cargar el caso"
+			if not save_name.is_empty():
+				lbl_case.text = "Jugador: %s | %s" % [save_name, case_text]
+			else:
+				lbl_case.text = case_text
 
 	if not ok:
 		push_warning("No se pudo cargar el caso: %s" % case_id)
@@ -55,7 +71,7 @@ func _ready() -> void:
 	router = get_node_or_null("/root/Router")
 	if router:
 		router.set("root", self)
-		print(">>> [Home] Router encontrado:", router)
+		_log("Router encontrado")
 	else:
 		push_warning("Router no encontrado (usaré fallback change_scene)")
 
@@ -69,21 +85,24 @@ func _ready() -> void:
 		btn.pressed.connect(_on_btn_pressed.bind(btn_name))
 
 func _on_btn_pressed(btn_name: String) -> void:
-	print(">>> [Home] Pulsado:", btn_name)
+	_log("Pulsado: " + btn_name)
 	var scn: PackedScene = SCENE_MAP.get(btn_name, null)
 	if scn == null:
-		print(">>> [Home] Falta escena para:", scn)
+		_log("Falta escena para: " + btn_name)
 		push_warning("Falta escena para: " + btn_name)
 		return
 
 	if router and router.has_method("go"):
 		var path := (scn as PackedScene).resource_path
-		print(">>> [Home] Router.go -> ", path)
+		_log("Router.go -> %s" % path)
 		router.call("go", path)
 	else:
-		print(">>> [Home] Fallback change_scene_to_packed")
+		_log("Fallback change_scene_to_packed")
 		get_tree().change_scene_to_packed(scn)
 		
 func _on_back_pressed() -> void:
-	print(">>> [Home] Pulsado BtnBack -> Home.tscn")
-	get_tree().change_scene_to_file("res://scenes//Main.tscn")
+	_log("Pulsado BtnBack -> SaveGameManager.tscn")
+	# Save current game before going back
+	if SaveGame.has_method("save_current_game"):
+		SaveGame.save_current_game()
+	get_tree().change_scene_to_file("res://scenes/SaveGameManager.tscn")
