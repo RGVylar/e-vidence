@@ -7,6 +7,10 @@ extends Control
 
 var _filter: String = ""
 
+const MSGAPP_DEBUG := false
+func _log(s: String) -> void:
+	if MSGAPP_DEBUG: print("[MSGAPP] ", s)
+
 func _ready() -> void:
 	btn_back.pressed.connect(_on_back_pressed)
 	search.text_changed.connect(_on_search_changed)
@@ -24,10 +28,10 @@ func _on_search_changed(t: String) -> void:
 	list_contacts()
 
 func list_contacts() -> void:
-	print(">>> case keys: ", (DB.current_case as Dictionary).keys())
-	print(">>> contacts(raw): ", (DB.current_case as Dictionary).get("contacts", []))
-	print(">>> chats keys: ", (DB.current_case as Dictionary).get("chats", {}).keys())
-	print(">>> filter: '", _filter, "'")
+	_log(">>> case keys: " + str((DB.current_case as Dictionary).keys()))
+	_log(">>> contacts(raw): " + str((DB.current_case as Dictionary).get("contacts", [])))
+	_log(">>> chats keys: " + str((DB.current_case as Dictionary).get("chats", {}).keys()))
+	_log(">>> filter: '" + _filter + "'")
 	for n in list.get_children(): n.queue_free()
 
 	var case_data: Dictionary = DB.current_case as Dictionary
@@ -68,7 +72,7 @@ func list_contacts() -> void:
 	if empty_lbl:
 		empty_lbl.visible = (shown == 0)
 		
-	print("Añadidos:", shown)
+	_log("Añadidos:" + str(shown))
 
 func _last_ts(chats: Dictionary, id: String) -> int:
 	if not chats.has(id): return 0

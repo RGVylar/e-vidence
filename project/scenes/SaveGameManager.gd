@@ -52,6 +52,9 @@ func _refresh_save_list() -> void:
 func _create_save_entry(save_data: Dictionary) -> void:
 	var container = HBoxContainer.new()
 	container.custom_minimum_size.y = 80
+	container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	container.alignment = BoxContainer.ALIGNMENT_BEGIN  # opcional
+
 	
 	# Save info container
 	var info_container = VBoxContainer.new()
@@ -78,24 +81,40 @@ func _create_save_entry(save_data: Dictionary) -> void:
 	details_label.text = details_text
 	details_label.add_theme_font_size_override("font_size", 16)
 	details_label.modulate = Color(0.8, 0.8, 0.8)
+	details_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART  # por si se alarga
+	details_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	var lines: Array[String] = []
+	if not created_date.is_empty():
+		lines.append("Creado: %s" % created_date)
+	if not last_saved.is_empty() and last_saved != created_date:
+		lines.append("Última partida: %s" % last_saved)
+	if not current_case.is_empty():
+		lines.append("Caso: %s" % current_case)
+
+	details_label.text = "\n".join(lines)
 	info_container.add_child(details_label)
 	
 	container.add_child(info_container)
 	
 	# Buttons container
 	var buttons_container = HBoxContainer.new()
+	buttons_container.size_flags_horizontal = Control.SIZE_SHRINK_END
+	buttons_container.alignment = BoxContainer.ALIGNMENT_END
+	buttons_container.add_theme_constant_override("separation", 12)
 	
 	# Load button
 	var btn_load = Button.new()
 	btn_load.text = "Cargar"
-	btn_load.custom_minimum_size = Vector2(100, 60)
+	btn_load.custom_minimum_size = Vector2(88, 44)
+	btn_load.size_flags_horizontal = 0
 	btn_load.pressed.connect(_on_load_save.bind(save_data.get("file_name", "")))
 	buttons_container.add_child(btn_load)
 	
 	# Delete button
 	var btn_delete = Button.new()
 	btn_delete.text = "Borrar"
-	btn_delete.custom_minimum_size = Vector2(100, 60)
+	btn_delete.custom_minimum_size = Vector2(88, 44)
+	btn_delete.size_flags_horizontal = 0
 	btn_delete.modulate = Color(1, 0.5, 0.5)
 	btn_delete.pressed.connect(_on_delete_save.bind(save_data.get("file_name", "")))
 	buttons_container.add_child(btn_delete)

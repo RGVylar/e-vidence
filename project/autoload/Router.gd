@@ -3,8 +3,13 @@ extends Node
 var root: Node = null
 var stack: Array[Node] = []
 
+
+const ROUTER_DEBUG := false
+func _log(s: String) -> void:
+	if ROUTER_DEBUG: print("[ROUTER] ", s)
+
 func _ready() -> void:
-	print("Router listo")
+	_log("ready")
 
 func goto(scene_path: String, params: Dictionary = {}) -> void:
 	var s: Node = load(scene_path).instantiate()
