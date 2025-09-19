@@ -28,11 +28,24 @@ func _ready() -> void:
 
 	btn_back.pressed.connect(_on_back_pressed)
 
-	var ok: bool = DB.load_case(GameState.current_case_id)
-	print(">>> [Home] load_case(", GameState.current_case_id, ") -> ", ok)
+	# Load case if we have a current_case_id
+	var ok: bool = false
+	if not GameState.current_case_id.is_empty():
+		ok = DB.load_case(GameState.current_case_id)
+		print(">>> [Home] load_case(", GameState.current_case_id, ") -> ", ok)
+	else:
+		print(">>> [Home] No current_case_id set")
+	
 	if lbl_case:
-		lbl_case.text = "Caso cargado: tutorial" if ok else "No se pudo cargar el caso"
-	if not ok:
+		var save_name = ""
+		if SaveGame.has_method("get_current_save_name"):
+			save_name = SaveGame.get_current_save_name()
+		var case_text = "Caso: %s" % GameState.current_case_id if ok else "No hay caso cargado"
+		if not save_name.is_empty():
+			lbl_case.text = "Jugador: %s | %s" % [save_name, case_text]
+		else:
+			lbl_case.text = case_text
+	if not ok and not GameState.current_case_id.is_empty():
 		push_warning("No se pudo cargar el caso: %s" % str(GameState.current_case_id))
 
 	router = get_node_or_null("/root/Router")
@@ -68,5 +81,8 @@ func _on_btn_pressed(btn_name: String) -> void:
 		get_tree().change_scene_to_packed(scn)
 		
 func _on_back_pressed() -> void:
-	print(">>> [Home] Pulsado BtnBack -> Home.tscn")
-	get_tree().change_scene_to_file("res://scenes//Main.tscn")
+	print(">>> [Home] Pulsado BtnBack -> SaveGameManager.tscn")
+	# Save current game before going back
+	if SaveGame.has_method("save_current_game"):
+		SaveGame.save_current_game()
+	get_tree().change_scene_to_file("res://scenes/SaveGameManager.tscn")

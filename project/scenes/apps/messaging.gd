@@ -52,7 +52,9 @@ func _pretty_contact(id: String) -> String:
 
 	
 func _on_back_pressed() -> void:
-	get_tree().change_scene_to_file("res://scenes//Home.tscn")
+	if SaveGame.has_method("save_current_game"):
+		SaveGame.save_current_game()
+	get_tree().change_scene_to_file("res://scenes/Home.tscn")
 
 func _make_contact_item(contact_id: String, name: String, avatar_path: String, preview: String) -> Button:
 	# Fila clickable
