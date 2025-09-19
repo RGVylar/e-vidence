@@ -12,6 +12,9 @@ extends Control
 var save_to_delete: String = ""
 
 func _ready() -> void:
+	# Ensure SaveGame is initialized
+	SaveGame._ready()
+	
 	# Connect buttons
 	btn_new_game.pressed.connect(_on_new_game_pressed)
 	btn_exit.pressed.connect(_on_exit_pressed)
@@ -117,13 +120,25 @@ func _on_exit_pressed() -> void:
 func _on_create_pressed() -> void:
 	var player_name = name_input.text.strip_edges()
 	if player_name.is_empty():
-		# Show error or just ignore
+		# Show error feedback
+		name_input.placeholder_text = "¡Debes introducir un nombre!"
+		name_input.modulate = Color(1, 0.5, 0.5)
+		var tween = create_tween()
+		tween.tween_property(name_input, "modulate", Color.WHITE, 1.0)
+		tween.tween_callback(func(): name_input.placeholder_text = "Tu nombre...")
 		return
 	
 	var save_id = SaveGame.create_new_save(player_name)
 	if not save_id.is_empty():
 		new_game_dialog.hide()
 		_load_home_scene()
+	else:
+		# Show error if save creation failed
+		name_input.placeholder_text = "Error al crear la partida"
+		name_input.modulate = Color(1, 0.5, 0.5)
+		var tween = create_tween()
+		tween.tween_property(name_input, "modulate", Color.WHITE, 1.0)
+		tween.tween_callback(func(): name_input.placeholder_text = "Tu nombre...")
 
 func _on_cancel_pressed() -> void:
 	new_game_dialog.hide()
@@ -136,6 +151,13 @@ func _on_load_save(file_name: String) -> void:
 	if SaveGame.load_save(file_name):
 		_load_home_scene()
 	else:
+		# Show error dialog
+		var error_dialog = AcceptDialog.new()
+		error_dialog.dialog_text = "No se pudo cargar la partida. El archivo puede estar corrupto."
+		error_dialog.title = "Error al cargar"
+		add_child(error_dialog)
+		error_dialog.popup_centered()
+		error_dialog.confirmed.connect(error_dialog.queue_free)
 		push_error("Failed to load save: " + file_name)
 
 func _on_delete_save(file_name: String) -> void:

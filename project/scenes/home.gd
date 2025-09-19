@@ -37,7 +37,9 @@ func _ready() -> void:
 		print(">>> [Home] No current_case_id set")
 	
 	if lbl_case:
-		var save_name = SaveGame.get_current_save_name()
+		var save_name = ""
+		if SaveGame.has_method("get_current_save_name"):
+			save_name = SaveGame.get_current_save_name()
 		var case_text = "Caso: %s" % GameState.current_case_id if ok else "No hay caso cargado"
 		if not save_name.is_empty():
 			lbl_case.text = "Jugador: %s | %s" % [save_name, case_text]
@@ -81,5 +83,6 @@ func _on_btn_pressed(btn_name: String) -> void:
 func _on_back_pressed() -> void:
 	print(">>> [Home] Pulsado BtnBack -> SaveGameManager.tscn")
 	# Save current game before going back
-	SaveGame.save_current_game()
+	if SaveGame.has_method("save_current_game"):
+		SaveGame.save_current_game()
 	get_tree().change_scene_to_file("res://scenes/SaveGameManager.tscn")

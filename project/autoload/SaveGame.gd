@@ -1,5 +1,19 @@
 extends Node
 
+## Save Game System for E-vidence
+## 
+## Manages save files in user://saves/ directory with JSON format.
+## Each save contains:
+## - metadata: player name, dates, current case, version
+## - game_state: GameState variables, inventory, current case/thread  
+## - db_state: DB state for case progress
+##
+## Usage:
+## - SaveGame.create_new_save(name) -> Creates new save with tutorial unlocked
+## - SaveGame.load_save(filename) -> Loads save and applies to current game
+## - SaveGame.save_current_game() -> Updates current save with current state
+## - SaveGame.get_save_list() -> Returns array of save metadata for UI
+
 const SAVE_DIR = "user://saves/"
 const SAVE_FILE_PREFIX = "save_"
 const SAVE_FILE_EXTENSION = ".json"
@@ -99,7 +113,7 @@ func create_new_save(player_name: String) -> String:
 func save_current_game() -> bool:
 	"""Save the current game state to the current save slot"""
 	if current_save_id.is_empty():
-		push_error("No current save ID set")
+		# Silently fail if no save is loaded - this can happen during development
 		return false
 	
 	var file_name = current_save_id + SAVE_FILE_EXTENSION
