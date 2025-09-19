@@ -28,25 +28,41 @@ func _ready() -> void:
 
 	btn_back.pressed.connect(_on_back_pressed)
 
-	# Load case if we have a current_case_id
-	var ok: bool = false
-	if not GameState.current_case_id.is_empty():
-		ok = DB.load_case(GameState.current_case_id)
-		print(">>> [Home] load_case(", GameState.current_case_id, ") -> ", ok)
-	else:
-		print(">>> [Home] No current_case_id set")
-	
+	var case_id := String(GameState.current_case_id)
+	var ok := true
+
+	# Solo recarga si hace falta (y evita llamar dos veces)
+	var needs_load := typeof(DB.current_case) != TYPE_DICTIONARY \
+		 or (DB.current_case as Dictionary).is_empty() \
+		 or String((DB.current_case as Dictionary).get("_id","")) != case_id
+	if needs_load:
+		ok = DB.load_case(case_id)
+
+	print(">>> [Home] load_case(", case_id, ") -> ", ok)
+
 	if lbl_case:
 		var save_name = ""
 		if SaveGame.has_method("get_current_save_name"):
 			save_name = SaveGame.get_current_save_name()
-		var case_text = "Caso: %s" % GameState.current_case_id if ok else "No hay caso cargado"
-		if not save_name.is_empty():
-			lbl_case.text = "Jugador: %s | %s" % [save_name, case_text]
+		
+		if ok:
+			var display := case_id
+			if display.begins_with("case_"):
+				display = display.substr("case_".length())  # quita el prefijo
+			var case_text = "Caso cargado: %s" % display
+			if not save_name.is_empty():
+				lbl_case.text = "Jugador: %s | %s" % [save_name, case_text]
+			else:
+				lbl_case.text = case_text
 		else:
-			lbl_case.text = case_text
-	if not ok and not GameState.current_case_id.is_empty():
-		push_warning("No se pudo cargar el caso: %s" % str(GameState.current_case_id))
+			var case_text = "No se pudo cargar el caso"
+			if not save_name.is_empty():
+				lbl_case.text = "Jugador: %s | %s" % [save_name, case_text]
+			else:
+				lbl_case.text = case_text
+
+	if not ok:
+		push_warning("No se pudo cargar el caso: %s" % case_id)
 
 	router = get_node_or_null("/root/Router")
 	if router:
