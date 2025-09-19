@@ -80,7 +80,7 @@ func create_new_save(player_name: String) -> String:
 	# Initialize GameState for new game
 	GameState.vars.clear()
 	GameState.inventory.clear()
-	GameState.current_case_id = "case_tutorial"
+	GameState.current_case_id = "case_demo_general"
 	GameState.current_thread = ""
 	
 	# Unlock tutorial case
