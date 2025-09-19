@@ -1,0 +1,51 @@
+{
+  "contacts": [
+	{
+	  "id": "npc_photo",
+	  "name": "Fotógrafa",
+	  "avatar": "res://assets/avatars/david.jpg",
+	  "timing": {
+		"npc_reaction_delay": 0.5,
+		"npc_typing_min": 0.2,
+		"npc_typing_max": 0.6,
+		"npc_between_msgs": 0.3,
+		"typing_per_char": 0.015
+	  }
+	}
+  ],
+
+  "chats": {
+	"npc_photo": {
+	  "history": [
+		{ "from": "Fotógrafa", "text": "Hola 👋 ¿quieres que te pase unas fotos por aquí?" },
+		{ "from": "Yo",        "text": "Sí, por favor." }
+	  ],
+	  "options": [
+		{
+		  "id": "send_photo_demo",
+		  "text": "Envíame una foto",
+		  "npc_reply": [
+			{ "text": "Voy a mandarte una." },
+			{ "image": "res://assets/avatars/pilar.jpg", "text": "Aquí la tienes 📸", "between": 0.5 }
+		  ]
+		},
+		{
+		  "id": "send_two_photos",
+		  "text": "Envíame dos seguidas",
+		  "npc_reply": [
+			{ "text": "Te paso dos, una detrás de otra…" },
+			{ "image": "res://assets/case/gatos/cats/auri.jpg", "text": "Primera", "between": 0.6 },
+			{ "image": "res://assets/case/gatos/cats/cosmo.jpg", "text": "Y la segunda", "between": 0.6 }
+		  ]
+		},
+		{
+		  "id": "just_text",
+		  "text": "Solo texto (control)",
+		  "npc_reply": [
+            "Perfecto, este es un mensaje solo de texto para comparar."
+		  ]
+		}
+	  ]
+	}
+	}
+}

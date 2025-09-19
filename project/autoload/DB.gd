@@ -41,6 +41,7 @@ func load_case(case_id: String, keep_state: bool = true) -> bool:
 			state[k] = defaults[k]
 
 	_log("load_case('%s') keep_state=%s state.size=%d" % [case_id, str(keep_state), state.size()])
+
 	return true
 
 
@@ -346,7 +347,6 @@ func grant_evidence(eid: String) -> void:
 	inv[eid] = true
 	GameState.inventory = inv
 	_log("evidence granted -> %s" % eid)
-
 func _owned_evidence_ids() -> Array:
 	_ensure_inventory()
 	return (GameState.inventory as Dictionary).keys()
@@ -410,7 +410,7 @@ func dict_get_number(d: Dictionary, key: String, fallback: float) -> float:
 		if typeof(v) in [TYPE_INT, TYPE_FLOAT, TYPE_STRING]:
 			return float(v)
 	return fallback
-
+ 
 func get_progress_snapshot() -> Dictionary:
 	var snap: Dictionary = {}
 
