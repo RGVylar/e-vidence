@@ -12,6 +12,7 @@
 	"yes": "Sí",
 	"no": "No",
 	"ok": "Aceptar",
+	"close": "Cerrar",
 	
 	"player_name": "Nombre del jugador",
 	"enter_name": "Tu nombre...",
@@ -36,5 +37,9 @@
 	"present_evidence": "Presento una prueba.",
 	
 	"unknown_player": "Sin nombre",
-	"unnamed_save": "esta partida"
+	"unnamed_save": "esta partida",
+	
+	"language_changed": "Idioma cambiado a Español",
+	"language_selection": "Selección de idioma",
+	"current_language": "Idioma actual: %s"
 }

@@ -12,6 +12,7 @@
 	"yes": "Yes",
 	"no": "No",
 	"ok": "OK",
+	"close": "Close",
 	
 	"player_name": "Player name",
 	"enter_name": "Your name...",
@@ -36,5 +37,9 @@
 	"present_evidence": "I present evidence.",
 	
 	"unknown_player": "Unknown",
-	"unnamed_save": "this save"
+	"unnamed_save": "this save",
+	
+	"language_changed": "Language changed to English",
+	"language_selection": "Language selection",
+	"current_language": "Current language: %s"
 }

@@ -82,21 +82,34 @@ func _on_options_pressed() -> void:
 	
 	options_dialog = AcceptDialog.new()
 	options_dialog.title = Localization.tr("options", "Options")
-	options_dialog.size = Vector2(400, 300)
+	options_dialog.size = Vector2(450, 350)
+	options_dialog.get_ok_button().text = Localization.tr("close", "Close")
 	
 	var vbox = VBoxContainer.new()
-	vbox.add_theme_constant_override("separation", 12)
+	vbox.add_theme_constant_override("separation", 16)
+	
+	# Language selection section
+	var lang_section = VBoxContainer.new()
+	lang_section.add_theme_constant_override("separation", 8)
 	
 	# Language selection label
 	var lang_label = Label.new()
-	lang_label.text = Localization.tr("language", "Language") + ":"
+	lang_label.text = Localization.tr("language_selection", "Language selection") + ":"
 	lang_label.add_theme_font_size_override("font_size", 24)
-	vbox.add_child(lang_label)
+	lang_section.add_child(lang_label)
+	
+	# Current language display
+	var current_lang_label = Label.new()
+	var current_display = Localization.get_language_display_name(Localization.get_current_language())
+	current_lang_label.text = Localization.tr("current_language", "Current language: %s") % current_display
+	current_lang_label.add_theme_font_size_override("font_size", 18)
+	current_lang_label.modulate = Color(0.8, 0.8, 0.8)
+	lang_section.add_child(current_lang_label)
 	
 	# Language selection dropdown
 	var lang_option = OptionButton.new()
 	lang_option.add_theme_font_size_override("font_size", 20)
-	lang_option.custom_minimum_size = Vector2(300, 50)
+	lang_option.custom_minimum_size = Vector2(350, 50)
 	
 	var available_languages = Localization.get_available_languages()
 	var current_language = Localization.get_current_language()
@@ -116,10 +129,19 @@ func _on_options_pressed() -> void:
 	
 	lang_option.item_selected.connect(func(index: int):
 		var selected_lang = lang_option.get_item_metadata(index) as String
-		Localization.set_language(selected_lang)
+		if selected_lang != Localization.get_current_language():
+			Localization.set_language(selected_lang)
+			# Update the current language display
+			var new_display = Localization.get_language_display_name(selected_lang)
+			current_lang_label.text = Localization.tr("current_language", "Current language: %s") % new_display
+			# Update dialog title and button
+			options_dialog.title = Localization.tr("options", "Options")
+			options_dialog.get_ok_button().text = Localization.tr("close", "Close")
+			lang_label.text = Localization.tr("language_selection", "Language selection") + ":"
 	)
 	
-	vbox.add_child(lang_option)
+	lang_section.add_child(lang_option)
+	vbox.add_child(lang_section)
 	
 	options_dialog.add_child(vbox)
 	add_child(options_dialog)
