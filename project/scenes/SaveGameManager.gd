@@ -28,6 +28,11 @@ func _ready() -> void:
 	# Connect name input for Enter key
 	name_input.text_submitted.connect(_on_name_submitted)
 	
+	# Connect to localization changes
+	Localization.language_changed.connect(_on_language_changed)
+	
+	_update_ui_text()
+	
 	# Initial refresh
 	_refresh_save_list()
 
@@ -40,7 +45,7 @@ func _refresh_save_list() -> void:
 	
 	if saves.is_empty():
 		var no_saves_label = Label.new()
-		no_saves_label.text = "No hay partidas guardadas"
+		no_saves_label.text = Localization.tr("no_saves", "No hay partidas guardadas")
 		no_saves_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		no_saves_label.add_theme_font_size_override("font_size", 24)
 		save_list.add_child(no_saves_label)
@@ -62,7 +67,7 @@ func _create_save_entry(save_data: Dictionary) -> void:
 	
 	# Player name
 	var name_label = Label.new()
-	name_label.text = save_data.get("player_name", "Sin nombre")
+	name_label.text = save_data.get("player_name", Localization.tr("unknown_player", "Sin nombre"))
 	name_label.add_theme_font_size_override("font_size", 24)
 	info_container.add_child(name_label)
 	
@@ -72,11 +77,11 @@ func _create_save_entry(save_data: Dictionary) -> void:
 	var last_saved = save_data.get("last_saved", "")
 	var current_case = save_data.get("current_case", "")
 	
-	var details_text = "Creado: %s" % created_date
+	var details_text = Localization.tr("created_date", "Creado: %s") % created_date
 	if not last_saved.is_empty() and last_saved != created_date:
-		details_text += " | Última partida: %s" % last_saved
+		details_text += " | " + (Localization.tr("last_saved", "Última partida: %s") % last_saved)
 	if not current_case.is_empty():
-		details_text += " | Caso: %s" % current_case
+		details_text += " | " + (Localization.tr("case_label", "Caso: %s") % current_case)
 	
 	details_label.text = details_text
 	details_label.add_theme_font_size_override("font_size", 16)
@@ -104,7 +109,7 @@ func _create_save_entry(save_data: Dictionary) -> void:
 	
 	# Load button
 	var btn_load = Button.new()
-	btn_load.text = "Cargar"
+	btn_load.text = Localization.tr("load_game", "Cargar")
 	btn_load.custom_minimum_size = Vector2(88, 44)
 	btn_load.size_flags_horizontal = 0
 	btn_load.pressed.connect(_on_load_save.bind(save_data.get("file_name", "")))
@@ -112,7 +117,7 @@ func _create_save_entry(save_data: Dictionary) -> void:
 	
 	# Delete button
 	var btn_delete = Button.new()
-	btn_delete.text = "Borrar"
+	btn_delete.text = Localization.tr("delete", "Borrar")
 	btn_delete.custom_minimum_size = Vector2(88, 44)
 	btn_delete.size_flags_horizontal = 0
 	btn_delete.modulate = Color(1, 0.5, 0.5)
@@ -140,7 +145,7 @@ func _on_create_pressed() -> void:
 	var player_name = name_input.text.strip_edges()
 	if player_name.is_empty():
 		# Show error feedback
-		name_input.placeholder_text = "¡Debes introducir un nombre!"
+		name_input.placeholder_text = Localization.tr("enter_name_required", "¡Debes introducir un nombre!")
 		name_input.modulate = Color(1, 0.5, 0.5)
 		var tween = create_tween()
 		tween.tween_property(name_input, "modulate", Color.WHITE, 1.0)
@@ -153,7 +158,7 @@ func _on_create_pressed() -> void:
 		_load_home_scene()
 	else:
 		# Show error if save creation failed
-		name_input.placeholder_text = "Error al crear la partida"
+		name_input.placeholder_text = Localization.tr("create_game_error", "Error al crear la partida")
 		name_input.modulate = Color(1, 0.5, 0.5)
 		var tween = create_tween()
 		tween.tween_property(name_input, "modulate", Color.WHITE, 1.0)
@@ -172,8 +177,8 @@ func _on_load_save(file_name: String) -> void:
 	else:
 		# Show error dialog
 		var error_dialog = AcceptDialog.new()
-		error_dialog.dialog_text = "No se pudo cargar la partida. El archivo puede estar corrupto."
-		error_dialog.title = "Error al cargar"
+		error_dialog.dialog_text = Localization.tr("load_error_message", "No se pudo cargar la partida. El archivo puede estar corrupto.")
+		error_dialog.title = Localization.tr("load_error_title", "Error al cargar")
 		add_child(error_dialog)
 		error_dialog.popup_centered()
 		error_dialog.confirmed.connect(error_dialog.queue_free)
@@ -182,8 +187,8 @@ func _on_load_save(file_name: String) -> void:
 func _on_delete_save(file_name: String) -> void:
 	save_to_delete = file_name
 	var save_data = SaveGame.load_save_metadata(file_name)
-	var player_name = save_data.get("player_name", "esta partida")
-	delete_confirmation.dialog_text = "¿Estás seguro de que quieres borrar la partida de '%s'?" % player_name
+	var player_name = save_data.get("player_name", Localization.tr("unnamed_save", "esta partida"))
+	delete_confirmation.dialog_text = Localization.tr("delete_confirmation", "¿Estás seguro de que quieres borrar la partida de '%s'?") % player_name
 	delete_confirmation.popup_centered()
 
 func _on_delete_confirmed() -> void:
@@ -193,3 +198,21 @@ func _on_delete_confirmed() -> void:
 
 func _load_home_scene() -> void:
 	get_tree().change_scene_to_file("res://scenes/Home.tscn")
+
+func _update_ui_text() -> void:
+	"""Update UI text with current language"""
+	if btn_new_game:
+		btn_new_game.text = Localization.tr("new_game", "Nueva Partida")
+	if btn_exit:
+		btn_exit.text = Localization.tr("exit", "Salir")
+	if btn_create:
+		btn_create.text = Localization.tr("create", "Crear")
+	if btn_cancel:
+		btn_cancel.text = Localization.tr("cancel", "Cancelar")
+	if name_input:
+		name_input.placeholder_text = Localization.tr("enter_name", "Tu nombre...")
+
+func _on_language_changed(new_language: String) -> void:
+	"""Called when language changes"""
+	_update_ui_text()
+	_refresh_save_list()  # Refresh to update save list text

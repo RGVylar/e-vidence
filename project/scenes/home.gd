@@ -31,6 +31,9 @@ func _ready() -> void:
 	}
 
 	btn_back.pressed.connect(_on_back_pressed)
+	
+	# Connect to localization changes
+	Localization.language_changed.connect(_on_language_changed)
 
 	var case_id := String(GameState.current_case_id)
 	var ok := true
@@ -53,15 +56,15 @@ func _ready() -> void:
 			var display := case_id
 			if display.begins_with("case_"):
 				display = display.substr("case_".length())  # quita el prefijo
-			var case_text = "Caso cargado: %s" % display
+			var case_text = Localization.tr("case_loaded", "Caso cargado: %s") % display
 			if not save_name.is_empty():
-				lbl_case.text = "Jugador: %s | %s" % [save_name, case_text]
+				lbl_case.text = Localization.tr("player_case_format", "Jugador: %s | %s") % [save_name, case_text]
 			else:
 				lbl_case.text = case_text
 		else:
-			var case_text = "No se pudo cargar el caso"
+			var case_text = Localization.tr("case_load_error", "No se pudo cargar el caso")
 			if not save_name.is_empty():
-				lbl_case.text = "Jugador: %s | %s" % [save_name, case_text]
+				lbl_case.text = Localization.tr("player_case_format", "Jugador: %s | %s") % [save_name, case_text]
 			else:
 				lbl_case.text = case_text
 
@@ -106,3 +109,35 @@ func _on_back_pressed() -> void:
 	if SaveGame.has_method("save_current_game"):
 		SaveGame.save_current_game()
 	get_tree().change_scene_to_file("res://scenes/SaveGameManager.tscn")
+
+func _on_language_changed(new_language: String) -> void:
+	"""Called when language changes"""
+	_update_case_label()
+
+func _update_case_label() -> void:
+	"""Update the case label with current language"""
+	if not lbl_case:
+		return
+		
+	var case_id := String(GameState.current_case_id)
+	var save_name = ""
+	if SaveGame.has_method("get_current_save_name"):
+		save_name = SaveGame.get_current_save_name()
+	
+	var case_loaded = typeof(DB.current_case) == TYPE_DICTIONARY and not (DB.current_case as Dictionary).is_empty()
+	
+	if case_loaded:
+		var display := case_id
+		if display.begins_with("case_"):
+			display = display.substr("case_".length())  # quita el prefijo
+		var case_text = Localization.tr("case_loaded", "Caso cargado: %s") % display
+		if not save_name.is_empty():
+			lbl_case.text = Localization.tr("player_case_format", "Jugador: %s | %s") % [save_name, case_text]
+		else:
+			lbl_case.text = case_text
+	else:
+		var case_text = Localization.tr("case_load_error", "No se pudo cargar el caso")
+		if not save_name.is_empty():
+			lbl_case.text = Localization.tr("player_case_format", "Jugador: %s | %s") % [save_name, case_text]
+		else:
+			lbl_case.text = case_text

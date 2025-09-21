@@ -296,7 +296,7 @@ func apply_evidence(contact_id: String, evidence_id: String) -> Dictionary:
 		_process_effect(String(e_v))
 
 	# persistir conversacion por evidencia
-	var player_text := String(rx.get("text", "Presento una prueba."))
+	var player_text := String(rx.get("text", Localization.tr("present_evidence", "Presento una prueba.")))
 	history.append({"from":"Yo", "text": player_text})
 	for line_v in (rx.get("npc_reply", []) as Array):
 		if typeof(line_v) == TYPE_DICTIONARY and (line_v as Dictionary).has("image"):

@@ -1,0 +1,40 @@
+{
+	"game_name": "e-vidence",
+	"load_game": "Cargar",
+	"new_game": "Nueva Partida",
+	"delete": "Borrar",
+	"create": "Crear",
+	"cancel": "Cancelar",
+	"back": "Atrás",
+	"exit": "Salir",
+	"options": "Opciones",
+	"language": "Idioma",
+	"yes": "Sí",
+	"no": "No",
+	"ok": "Aceptar",
+	
+	"player_name": "Nombre del jugador",
+	"enter_name": "Tu nombre...",
+	"enter_name_required": "¡Debes introducir un nombre!",
+	"create_game_error": "Error al crear la partida",
+	
+	"no_saves": "No hay partidas guardadas",
+	"player_label": "Jugador: %s",
+	"case_loaded": "Caso cargado: %s",
+	"case_load_error": "No se pudo cargar el caso",
+	"player_case_format": "Jugador: %s | %s",
+	
+	"created_date": "Creado: %s",
+	"last_saved": "Última partida: %s",
+	"case_label": "Caso: %s",
+	
+	"load_error_title": "Error al cargar",
+	"load_error_message": "No se pudo cargar la partida. El archivo puede estar corrupto.",
+	"delete_confirmation": "¿Estás seguro de que quieres borrar la partida de '%s'?",
+	
+	"no_evidence": "No tengo pruebas útiles ahora.",
+	"present_evidence": "Presento una prueba.",
+	
+	"unknown_player": "Sin nombre",
+	"unnamed_save": "esta partida"
+}

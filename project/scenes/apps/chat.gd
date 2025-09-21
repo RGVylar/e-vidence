@@ -218,8 +218,8 @@ func _on_add_pressed() -> void:
 
 	if presentables.is_empty():
 		var ts := Time.get_unix_time_from_system()
-		_add_bubble("Yo", "No tengo pruebas útiles ahora.", ts)
-		push_msg(GameState.current_thread, "Yo", "No tengo pruebas útiles ahora.") 
+		_add_bubble("Yo", Localization.tr("no_evidence", "No tengo pruebas útiles ahora."), ts)
+		push_msg(GameState.current_thread, "Yo", Localization.tr("no_evidence", "No tengo pruebas útiles ahora.")) 
 		_scroll_to_bottom()
 		return
 

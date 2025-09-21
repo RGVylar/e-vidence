@@ -2,13 +2,24 @@ extends Control
 
 @onready var btn_start: Button = %BtnStart
 @onready var case_select: OptionButton = %CaseSelect
+@onready var btn_options: Button = %BtnOptions
 
 var cases: Array[Dictionary] = []  # [{id, title, path}]
+var options_dialog: AcceptDialog
 
 func _ready() -> void:
+	# Connect signals
 	btn_start.pressed.connect(_on_start_pressed)
 	case_select.item_selected.connect(_on_case_selected)
+	if btn_options:
+		btn_options.pressed.connect(_on_options_pressed)
+	
+	# Connect to localization changes
+	Localization.language_changed.connect(_on_language_changed)
+	
 	_populate_cases()
+	_update_ui_text()
+	
 	# Preselecciona el caso actual si existe
 	for i in cases.size():
 		var d: Dictionary = cases[i]
@@ -27,7 +38,7 @@ func _scan_cases(path: String) -> Array[Dictionary]:
 	var out: Array[Dictionary] = []
 	var dir := DirAccess.open(path)
 	if dir == null:
-		push_warning("No se puede abrir: %s" % path)
+		push_warning("Cannot open: %s" % path)
 		return out
 	dir.list_dir_begin()
 	var name := dir.get_next()
@@ -52,6 +63,67 @@ func _on_case_selected(index: int) -> void:
 	if index >= 0 and index < cases.size():
 		var d: Dictionary = cases[index]
 		GameState.current_case_id = d.get("id", "") as String
+
+func _update_ui_text() -> void:
+	"""Update UI text with current language"""
+	if btn_start:
+		btn_start.text = "► " + Localization.tr("new_game", "Start")
+	if btn_options:
+		btn_options.text = Localization.tr("options", "Options")
+
+func _on_language_changed(new_language: String) -> void:
+	"""Called when language changes"""
+	_update_ui_text()
+
+func _on_options_pressed() -> void:
+	"""Show options dialog with language selection"""
+	if options_dialog != null:
+		options_dialog.queue_free()
+	
+	options_dialog = AcceptDialog.new()
+	options_dialog.title = Localization.tr("options", "Options")
+	options_dialog.size = Vector2(400, 300)
+	
+	var vbox = VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 12)
+	
+	# Language selection label
+	var lang_label = Label.new()
+	lang_label.text = Localization.tr("language", "Language") + ":"
+	lang_label.add_theme_font_size_override("font_size", 24)
+	vbox.add_child(lang_label)
+	
+	# Language selection dropdown
+	var lang_option = OptionButton.new()
+	lang_option.add_theme_font_size_override("font_size", 20)
+	lang_option.custom_minimum_size = Vector2(300, 50)
+	
+	var available_languages = Localization.get_available_languages()
+	var current_language = Localization.get_current_language()
+	var selected_index = -1
+	
+	for i in available_languages.size():
+		var lang_code = available_languages[i]
+		var display_name = Localization.get_language_display_name(lang_code)
+		lang_option.add_item(display_name)
+		lang_option.set_item_metadata(i, lang_code)
+		
+		if lang_code == current_language:
+			selected_index = i
+	
+	if selected_index >= 0:
+		lang_option.select(selected_index)
+	
+	lang_option.item_selected.connect(func(index: int):
+		var selected_lang = lang_option.get_item_metadata(index) as String
+		Localization.set_language(selected_lang)
+	)
+	
+	vbox.add_child(lang_option)
+	
+	options_dialog.add_child(vbox)
+	add_child(options_dialog)
+	options_dialog.popup_centered()
 
 func _on_start_pressed() -> void:
 	# Si no se ha tocado el selector pero hay elementos, aplica el primero
