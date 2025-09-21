@@ -1,0 +1,45 @@
+{
+	"game_name": "e-vidence",
+	"load_game": "Load",
+	"new_game": "New Game",
+	"delete": "Delete",
+	"create": "Create",
+	"cancel": "Cancel",
+	"back": "Back",
+	"exit": "Exit",
+	"options": "Options",
+	"language": "Language",
+	"yes": "Yes",
+	"no": "No",
+	"ok": "OK",
+	"close": "Close",
+	
+	"player_name": "Player name",
+	"enter_name": "Your name...",
+	"enter_name_required": "You must enter a name!",
+	"create_game_error": "Error creating game",
+	
+	"no_saves": "No saved games",
+	"player_label": "Player: %s",
+	"case_loaded": "Case loaded: %s",
+	"case_load_error": "Could not load case",
+	"player_case_format": "Player: %s | %s",
+	
+	"created_date": "Created: %s",
+	"last_saved": "Last played: %s",
+	"case_label": "Case: %s",
+	
+	"load_error_title": "Load Error",
+	"load_error_message": "Could not load the save game. The file may be corrupted.",
+	"delete_confirmation": "Are you sure you want to delete '%s's save game?",
+	
+	"no_evidence": "I don't have any useful evidence right now.",
+	"present_evidence": "I present evidence.",
+	
+	"unknown_player": "Unknown",
+	"unnamed_save": "this save",
+	
+	"language_changed": "Language changed to English",
+	"language_selection": "Language selection",
+	"current_language": "Current language: %s"
+}

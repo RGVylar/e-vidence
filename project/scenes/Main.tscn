@@ -71,6 +71,14 @@ layout_mode = 2
 size_flags_horizontal = 4
 theme_override_font_sizes/font_size = 24
 
+[node name="BtnOptions" type="Button" parent="CenterPanel/VBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(420, 64)
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_font_sizes/font_size = 28
+text = "Options"
+
 [node name="Footer" type="Label" parent="."]
 modulate = Color(1, 1, 1, 0.55)
 layout_mode = 1
